@@ -1,0 +1,51 @@
+<section class="page-header">
+  <h1>Fuentes</h1>
+  <p class="muted">
+    Medios indexados con su nivel de confiabilidad histórica. Una fuente con
+    <code>credibilityScore &lt; 0.4</code> aporta 25 puntos al cálculo de riesgo de sus noticias.
+  </p>
+</section>
+
+@if (loading()) {
+  <div class="loading">Cargando fuentes…</div>
+} @else if (error()) {
+  <div class="error">{{ error() }}</div>
+} @else {
+  <div class="card card-tight table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Fuente</th>
+          <th>Tipo</th>
+          <th>Confiabilidad</th>
+          <th>URL</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (s of sources(); track s.id) {
+          <tr>
+            <td>
+              <div>{{ s.name }}</div>
+              <div class="mono tiny muted">{{ s.id }}</div>
+            </td>
+            <td><span class="chip">{{ s.type }}</span></td>
+            <td>
+              <div class="cred-cell">
+                <div class="cred-header">
+                  <span [class]="credibilityBadgeClass(s.credibilityScore)">
+                    {{ credibilityLabel(s.credibilityScore) }}
+                  </span>
+                  <span class="mono small">{{ percent(s.credibilityScore) }}%</span>
+                </div>
+                <div [class]="credibilityBarClass(s.credibilityScore)">
+                  <span [style.width.%]="percent(s.credibilityScore)"></span>
+                </div>
+              </div>
+            </td>
+            <td><a [href]="s.url" target="_blank" rel="noopener" class="mono small">{{ s.url }}</a></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

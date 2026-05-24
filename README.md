@@ -383,9 +383,37 @@ curl -i http://localhost:8080/api/news/no-existe/analysis
 
 ---
 
+## Frontend Angular (Fase 4)
+
+SPA en `frontend-angular/` con identidad visual NexoVeraz.
+
+### Levantarlo
+
+```bash
+cd frontend-angular
+npm install        # primera vez, ~2-3 min
+npm start          # ng serve en http://localhost:4200
+```
+
+Requiere que el backend esté corriendo en `http://localhost:8080` (CORS ya habilitado solo para `localhost:4200`).
+
+### Pantallas
+
+| Ruta            | Contenido                                                                  |
+|-----------------|----------------------------------------------------------------------------|
+| `/dashboard`    | Tarjetas LOW/MEDIUM/HIGH + conteos + intro del proyecto                    |
+| `/news`         | Tabla de noticias con score, nivel y temas                                 |
+| `/news/:id`     | Detalle + botón **Calcular análisis de riesgo** + grafo de relaciones      |
+| `/sources`      | Tabla de fuentes con barra de `credibilityScore`                           |
+| `/reports`      | Distribución por riesgo, fuentes ordenadas por credibilidad, top risk     |
+
+Detalles técnicos completos en [`frontend-angular/README.md`](frontend-angular/README.md).
+
+---
+
 ## Roadmap
 
 - [x] **Fase 1** — Modelo de grafo, scripts Cypher, conexión Java↔Neo4j validada.
 - [x] **Fase 2** — Endpoints REST sobre el modelo (lectura por nodo + recorridos + grafo + dashboard) + CORS.
 - [x] **Fase 3** — Análisis de riesgo determinístico y explicable (`/api/news/{id}/analysis`).
-- [ ] **Fase 4** — Frontend Angular en `http://localhost:4200`.
+- [x] **Fase 4** — Frontend Angular SPA en `http://localhost:4200`, identidad NexoVeraz.

@@ -1,0 +1,160 @@
+.page-header { margin-bottom: var(--space-4); }
+
+/* --- Intro --- */
+.intro { margin-bottom: var(--space-6); }
+.intro-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.intro-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #042F2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -1px;
+}
+.intro h3 { margin: 0; font-size: 18px; }
+.slogan-text {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.intro p { margin-bottom: var(--space-3); }
+.intro code {
+  padding: 1px 6px;
+  background: rgba(56, 189, 248, 0.10);
+  color: var(--color-accent);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* --- Risk cards --- */
+.risk-cards { margin-bottom: var(--space-4); }
+
+.risk-card {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid var(--color-border);
+}
+.risk-card.risk-low    { border-left-color: var(--color-low); }
+.risk-card.risk-medium { border-left-color: var(--color-medium); }
+.risk-card.risk-high   { border-left-color: var(--color-high); }
+
+.risk-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+.risk-value {
+  font-size: 44px;
+  font-weight: 700;
+  margin: var(--space-2) 0;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.risk-low    .risk-value { color: var(--color-low); }
+.risk-medium .risk-value { color: var(--color-medium); }
+.risk-high   .risk-value { color: var(--color-high); }
+
+/* --- Stat cards --- */
+.totals { margin-bottom: var(--space-6); }
+.stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+}
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 184, 166, 0.10);
+  color: var(--color-primary);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+/* --- High risk shortcuts --- */
+.high-risk { border-left: 3px solid var(--color-high); }
+.hr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.hr-head h3 { margin: 0; }
+.hr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.hr-item {
+  display: grid;
+  grid-template-columns: 60px 60px 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.15s ease;
+}
+.hr-item:hover {
+  background: rgba(239, 68, 68, 0.10);
+  text-decoration: none;
+}
+.hr-score {
+  text-align: right;
+  font-weight: 700;
+  color: var(--color-high);
+}
+.hr-title { font-weight: 500; }
+.hr-source { white-space: nowrap; }
+
+@media (max-width: 700px) {
+  .hr-item {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "badge score"
+      "title title"
+      "source source";
+  }
+  .hr-item > :nth-child(1) { grid-area: badge; }
+  .hr-item > :nth-child(2) { grid-area: score; text-align: right; }
+  .hr-item > :nth-child(3) { grid-area: title; }
+  .hr-item > :nth-child(4) { grid-area: source; }
+}

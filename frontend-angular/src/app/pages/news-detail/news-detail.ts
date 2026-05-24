@@ -1,0 +1,152 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+
+import { NewsService } from '../../core/services/news.service';
+import { GraphService } from '../../core/services/graph.service';
+import { NewsDetail as NewsDetailModel, RiskLevel } from '../../core/models/news.model';
+import { NewsAnalysis } from '../../core/models/analysis.model';
+import { GraphNode, GraphNodeLabel, GraphResponse } from '../../core/models/graph.model';
+
+const GROUP_ORDER: GraphNodeLabel[] = [
+  'News', 'Source', 'Topic', 'Claim', 'Evidence', 'FactCheck', 'Post', 'User'
+];
+
+const GROUP_LABELS: Record<GraphNodeLabel, string> = {
+  News: 'Noticia',
+  Source: 'Fuente',
+  Topic: 'Temas',
+  Claim: 'Claims',
+  Evidence: 'Evidencias',
+  FactCheck: 'Fact Checks',
+  Post: 'Posts',
+  User: 'Usuarios'
+};
+
+@Component({
+  selector: 'nv-news-detail',
+  imports: [DatePipe, RouterLink],
+  templateUrl: './news-detail.html',
+  styleUrl: './news-detail.scss'
+})
+export class NewsDetail {
+  private newsService = inject(NewsService);
+  private graphService = inject(GraphService);
+  private route = inject(ActivatedRoute);
+
+  readonly groupOrder = GROUP_ORDER;
+
+  detail = signal<NewsDetailModel | null>(null);
+  graph = signal<GraphResponse | null>(null);
+  analysis = signal<NewsAnalysis | null>(null);
+
+  loading = signal(true);
+  error = signal<string | null>(null);
+
+  analysisLoading = signal(false);
+  analysisError = signal<string | null>(null);
+
+  /** Agrupa nodos del grafo por label para la visualización. */
+  groupedNodes = computed<Record<GraphNodeLabel, GraphNode[]>>(() => {
+    const g = this.graph();
+    const groups: Record<GraphNodeLabel, GraphNode[]> = {
+      News: [], Source: [], Topic: [], Claim: [],
+      Evidence: [], FactCheck: [], Post: [], User: []
+    };
+    if (!g) return groups;
+    for (const n of g.nodes) {
+      groups[n.label].push(n);
+    }
+    return groups;
+  });
+
+  constructor() {
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (id) this.load(id);
+    });
+  }
+
+  private load(id: string) {
+    this.loading.set(true);
+    this.error.set(null);
+    this.detail.set(null);
+    this.graph.set(null);
+    this.analysis.set(null);
+    this.analysisError.set(null);
+
+    forkJoin({
+      detail: this.newsService.getById(id),
+      graph: this.graphService.getNewsGraph(id)
+    }).subscribe({
+      next: ({ detail, graph }) => {
+        this.detail.set(detail);
+        this.graph.set(graph);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        if (err?.status === 404) {
+          this.error.set('La noticia no existe.');
+        } else {
+          this.error.set(err?.message ?? 'No se pudo cargar la noticia');
+        }
+        this.loading.set(false);
+      }
+    });
+  }
+
+  runAnalysis() {
+    const d = this.detail();
+    if (!d || this.analysisLoading()) return;
+
+    this.analysisLoading.set(true);
+    this.analysisError.set(null);
+
+    this.newsService.analyze(d.id).subscribe({
+      next: (a) => {
+        this.analysis.set(a);
+        this.analysisLoading.set(false);
+        // refrescamos el header con el score recién calculado
+        this.detail.update(curr => curr
+          ? { ...curr, riskScore: a.riskScore, riskLevel: a.riskLevel }
+          : curr);
+      },
+      error: (err) => {
+        this.analysisError.set(err?.message ?? 'No se pudo calcular el análisis');
+        this.analysisLoading.set(false);
+      }
+    });
+  }
+
+  riskBadgeClass(level: RiskLevel | null): string {
+    if (level === 'HIGH') return 'badge badge-high';
+    if (level === 'MEDIUM') return 'badge badge-medium';
+    if (level === 'LOW') return 'badge badge-low';
+    return 'badge';
+  }
+
+  scoreBarClass(level: RiskLevel | null): string {
+    if (level === 'HIGH') return 'score-bar high';
+    if (level === 'MEDIUM') return 'score-bar medium';
+    if (level === 'LOW') return 'score-bar low';
+    return 'score-bar';
+  }
+
+  groupLabel(label: GraphNodeLabel): string {
+    return GROUP_LABELS[label] ?? label;
+  }
+
+  edgePropEntries(props: Record<string, unknown>): Array<{ key: string; value: string }> {
+    return Object.entries(props ?? {}).map(([key, value]) => ({
+      key,
+      value: this.formatProp(value)
+    }));
+  }
+
+  private formatProp(value: unknown): string {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+}

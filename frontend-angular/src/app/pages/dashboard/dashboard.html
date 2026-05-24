@@ -1,0 +1,122 @@
+<section class="page-header">
+  <h1>Dashboard</h1>
+  <p class="muted">Panorama general del grafo Neo4j y distribución de riesgo de las noticias indexadas.</p>
+</section>
+
+<section class="card intro">
+  <div class="intro-head">
+    <div class="intro-mark">NV</div>
+    <div>
+      <h3>NexoVeraz</h3>
+      <p class="slogan-text">Noticias trazables. Riesgos explicables.</p>
+    </div>
+  </div>
+  <p>
+    NexoVeraz analiza la circulación de noticias digitales mediante un grafo de
+    <strong>fuentes</strong>, <strong>publicaciones</strong>, <strong>usuarios</strong>,
+    <strong>afirmaciones</strong>, <strong>evidencias</strong> y <strong>verificaciones</strong>.
+  </p>
+  <p class="muted small">
+    El cálculo de riesgo es <strong>determinístico y explicable</strong>: cada punto del
+    <code>riskScore</code> está respaldado por una señal objetiva detectada en el grafo.
+    El sistema no afirma "esta noticia es falsa" — clasifica nivel de riesgo
+    <span class="badge badge-low">LOW</span>
+    <span class="badge badge-medium">MEDIUM</span>
+    <span class="badge badge-high">HIGH</span>
+    según las señales encontradas.
+  </p>
+</section>
+
+@if (loading()) {
+  <div class="loading">Cargando métricas…</div>
+} @else if (error()) {
+  <div class="error">{{ error() }}</div>
+} @else if (data(); as d) {
+
+  <section class="grid grid-3 risk-cards">
+    <div class="card risk-card risk-low">
+      <div class="risk-label">Bajo riesgo</div>
+      <div class="risk-value">{{ d.lowRiskNews }}</div>
+      <div class="small muted">noticias con riskScore 0–39</div>
+    </div>
+    <div class="card risk-card risk-medium">
+      <div class="risk-label">Riesgo medio</div>
+      <div class="risk-value">{{ d.mediumRiskNews }}</div>
+      <div class="small muted">noticias con riskScore 40–69</div>
+    </div>
+    <div class="card risk-card risk-high">
+      <div class="risk-label">Alto riesgo</div>
+      <div class="risk-value">{{ d.highRiskNews }}</div>
+      <div class="small muted">noticias con riskScore 70–100</div>
+    </div>
+  </section>
+
+  <section class="grid grid-3 totals">
+    <div class="card stat">
+      <div class="stat-icon">▤</div>
+      <div>
+        <div class="stat-label">Total noticias</div>
+        <div class="stat-value">{{ d.totalNews }}</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="stat-icon">⟁</div>
+      <div>
+        <div class="stat-label">Fuentes</div>
+        <div class="stat-value">{{ d.totalSources }}</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="stat-icon">◐</div>
+      <div>
+        <div class="stat-label">Claims</div>
+        <div class="stat-value">{{ d.totalClaims }}</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="stat-icon">✓</div>
+      <div>
+        <div class="stat-label">Fact Checks</div>
+        <div class="stat-value">{{ d.totalFactChecks }}</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="stat-icon">✸</div>
+      <div>
+        <div class="stat-label">Posts</div>
+        <div class="stat-value">{{ d.totalPosts }}</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="stat-icon">⚇</div>
+      <div>
+        <div class="stat-label">Usuarios</div>
+        <div class="stat-value">{{ d.totalUsers }}</div>
+      </div>
+    </div>
+  </section>
+
+  @if (highRiskShortcuts().length > 0) {
+    <section class="card high-risk">
+      <div class="hr-head">
+        <div>
+          <h3>Acceso rápido — noticias de alto riesgo</h3>
+          <p class="muted small">Cola de revisión prioritaria.</p>
+        </div>
+        <a routerLink="/news" class="btn btn-ghost">Ver todas</a>
+      </div>
+      <ul class="hr-list">
+        @for (n of highRiskShortcuts(); track n.id) {
+          <li>
+            <a [routerLink]="['/news', n.id]" class="hr-item">
+              <span class="badge badge-high">HIGH</span>
+              <span class="hr-score mono">{{ n.riskScore }}</span>
+              <span class="hr-title">{{ n.title }}</span>
+              <span class="hr-source muted small">{{ n.sourceName ?? '—' }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

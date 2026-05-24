@@ -1,0 +1,80 @@
+<section class="page-header">
+  <h1>Reportes</h1>
+  <p class="muted">
+    Reportes calculados del lado del cliente a partir de
+    <code>/api/news</code> y <code>/api/sources</code>.
+  </p>
+</section>
+
+@if (loading()) {
+  <div class="loading">Calculando reportes…</div>
+} @else if (error()) {
+  <div class="error">{{ error() }}</div>
+} @else {
+
+  <section class="card report">
+    <h3>Distribución de noticias por riesgo</h3>
+    <div class="dist">
+      @for (b of distribution(); track b.level) {
+        <div class="dist-row">
+          <div class="dist-label">
+            <span [class]="badgeClass(b.level)">{{ b.level }}</span>
+            <span class="muted small">{{ b.count }} noticias · {{ b.percentage }}%</span>
+          </div>
+          <div class="dist-bar">
+            <span [class]="bucketClass(b.level)" [style.width.%]="b.percentage"></span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="grid grid-2 reports-grid">
+    <section class="card report">
+      <h3>Fuentes ordenadas por credibilidad</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Fuente</th>
+              <th>Tipo</th>
+              <th>Credibilidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sourcesByCredibility(); track s.id) {
+              <tr>
+                <td>{{ s.name }}</td>
+                <td><span class="chip">{{ s.type }}</span></td>
+                <td>
+                  <div class="cred-cell">
+                    <span class="mono small">{{ percent(s.credibilityScore) }}%</span>
+                    <div [class]="credBarClass(s.credibilityScore)">
+                      <span [style.width.%]="percent(s.credibilityScore)"></span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card report">
+      <h3>Top noticias por riskScore</h3>
+      <ul class="top-news">
+        @for (n of topRiskyNews(); track n.id) {
+          <li>
+            <div class="top-news-head">
+              <span [class]="badgeClass(n.riskLevel)">{{ n.riskLevel ?? '—' }}</span>
+              <span class="mono">{{ n.riskScore ?? '—' }}</span>
+            </div>
+            <a [routerLink]="['/news', n.id]" class="top-news-title">{{ n.title }}</a>
+            <div class="muted tiny">{{ n.sourceName ?? '—' }}</div>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+}

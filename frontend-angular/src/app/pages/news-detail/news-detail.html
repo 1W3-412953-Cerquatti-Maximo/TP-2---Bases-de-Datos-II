@@ -1,0 +1,316 @@
+<div class="page-header">
+  <a routerLink="/news" class="back">← Volver al listado</a>
+</div>
+
+@if (loading()) {
+  <div class="loading">Cargando detalle…</div>
+} @else if (error()) {
+  <div class="error">{{ error() }}</div>
+} @else if (detail(); as d) {
+
+  <!-- Encabezado -->
+  <section class="card hero">
+    <div class="hero-meta">
+      <span class="mono tiny muted">{{ d.id }}</span>
+      <span [class]="riskBadgeClass(d.riskLevel)">{{ d.riskLevel ?? 'N/A' }}</span>
+    </div>
+    <h1>{{ d.title }}</h1>
+    <p class="muted">{{ d.content }}</p>
+
+    <div class="hero-stats">
+      <div>
+        <div class="kv-label">riskScore</div>
+        <div class="kv-value mono">{{ d.riskScore ?? '—' }} / 100</div>
+        <div [class]="scoreBarClass(d.riskLevel)">
+          <span [style.width.%]="d.riskScore ?? 0"></span>
+        </div>
+      </div>
+      <div>
+        <div class="kv-label">Publicada</div>
+        <div class="kv-value">{{ d.publishedAt ? (d.publishedAt | date:'medium') : '—' }}</div>
+      </div>
+      <div>
+        <div class="kv-label">Fuente</div>
+        <div class="kv-value">{{ d.source?.name ?? '—' }}</div>
+      </div>
+      <div>
+        <div class="kv-label">URL</div>
+        <div class="kv-value">
+          @if (d.url) {
+            <a [href]="d.url" target="_blank" rel="noopener" class="small">{{ d.url }}</a>
+          } @else { — }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Análisis on-demand -->
+  <section class="card analysis-section">
+    <div class="analysis-head">
+      <div>
+        <h3>Análisis de riesgo</h3>
+        <p class="muted small">
+          Cálculo determinístico y explicable basado en señales del grafo. No usa IA.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="runAnalysis()"
+        [disabled]="analysisLoading()">
+        {{ analysisLoading() ? 'Calculando…' : (analysis() ? 'Recalcular análisis' : 'Calcular análisis de riesgo') }}
+      </button>
+    </div>
+
+    <div class="disclaimer">
+      <span class="disclaimer-icon">ℹ</span>
+      <div>
+        NexoVeraz <strong>no afirma que la noticia sea falsa</strong>. Clasifica el nivel de
+        <strong>riesgo</strong> (LOW / MEDIUM / HIGH) a partir de señales objetivas detectadas
+        en el grafo. Cada punto del score es trazable a una señal concreta.
+      </div>
+    </div>
+
+    @if (analysisError()) {
+      <div class="error">{{ analysisError() }}</div>
+    }
+
+    @if (analysis(); as a) {
+      <div class="analysis-body">
+        <div class="analysis-summary" [attr.data-level]="a.riskLevel">
+          <div class="summary-top">
+            <div class="summary-score">
+              <span class="summary-score-value mono">{{ a.riskScore }}</span>
+              <span class="summary-score-max muted">/ 100</span>
+            </div>
+            <span [class]="riskBadgeClass(a.riskLevel)">{{ a.riskLevel }}</span>
+          </div>
+          <div [class]="scoreBarClass(a.riskLevel)">
+            <span [style.width.%]="a.riskScore"></span>
+          </div>
+          <p class="summary-text">{{ a.summary }}</p>
+        </div>
+
+        <h4>Señales detectadas ({{ a.signals.length }})</h4>
+        @if (a.signals.length === 0) {
+          <p class="muted small">No se detectaron señales de riesgo en el grafo.</p>
+        } @else {
+          <ul class="signals">
+            @for (s of a.signals; track s.code) {
+              <li class="signal">
+                <div class="signal-points">+{{ s.points }}</div>
+                <div class="signal-body">
+                  <div class="mono signal-code">{{ s.code }}</div>
+                  <div class="muted small">{{ s.description }}</div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Datos asociados -->
+  <div class="grid grid-2 detail-grid">
+
+    @if (d.source; as s) {
+      <section class="card">
+        <h3>Fuente</h3>
+        <dl class="kv">
+          <dt>Nombre</dt><dd>{{ s.name }}</dd>
+          <dt>Tipo</dt><dd><span class="chip">{{ s.type }}</span></dd>
+          <dt>Credibilidad</dt><dd class="mono">{{ s.credibilityScore ?? '—' }}</dd>
+          <dt>URL</dt><dd><a [href]="s.url" target="_blank" rel="noopener" class="small">{{ s.url }}</a></dd>
+        </dl>
+      </section>
+    }
+
+    <section class="card">
+      <h3>Temas ({{ d.topics.length }})</h3>
+      @if (d.topics.length === 0) {
+        <p class="muted small">Sin temas asociados.</p>
+      } @else {
+        @for (t of d.topics; track t.id) {
+          <span class="chip">{{ t.name }}</span>
+        }
+      }
+    </section>
+
+    <section class="card">
+      <h3>Claims ({{ d.claims.length }})</h3>
+      @if (d.claims.length === 0) {
+        <p class="muted small">Sin claims extraídos.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (c of d.claims; track c.id) {
+            <li>
+              <div class="entity-head">
+                <span class="mono tiny muted">{{ c.id }}</span>
+                <span class="badge">{{ c.status }}</span>
+              </div>
+              <div>{{ c.text }}</div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card">
+      <h3>Evidencias ({{ d.evidence.length }})</h3>
+      @if (d.evidence.length === 0) {
+        <p class="muted small">Sin evidencias asociadas.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (e of d.evidence; track e.id) {
+            <li>
+              <div class="entity-head">
+                <span class="mono tiny muted">{{ e.id }}</span>
+                <span class="chip">{{ e.type }}</span>
+              </div>
+              <div>{{ e.description }}</div>
+              @if (e.url) {
+                <a [href]="e.url" target="_blank" rel="noopener" class="small mono">{{ e.url }}</a>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card">
+      <h3>Fact Checks ({{ d.factChecks.length }})</h3>
+      @if (d.factChecks.length === 0) {
+        <p class="muted small">Sin fact checks asociados.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (f of d.factChecks; track f.id) {
+            <li>
+              <div class="entity-head">
+                <span class="mono tiny muted">{{ f.id }}</span>
+                <span class="badge badge-info">{{ f.verdict }}</span>
+                <span class="muted tiny">confidence {{ f.confidence ?? '—' }}</span>
+              </div>
+              <div>{{ f.explanation }}</div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card">
+      <h3>Posts ({{ d.posts.length }})</h3>
+      @if (d.posts.length === 0) {
+        <p class="muted small">Ningún post difundió esta noticia.</p>
+      } @else {
+        <ul class="entity-list">
+          @for (p of d.posts; track p.id) {
+            <li>
+              <div class="entity-head">
+                <span class="mono tiny muted">{{ p.id }}</span>
+                <span class="chip">{{ p.platform }}</span>
+                <span class="muted tiny">{{ p.createdAt ? (p.createdAt | date:'short') : '—' }}</span>
+              </div>
+              <div>{{ p.content }}</div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card">
+      <h3>Usuarios ({{ d.users.length }})</h3>
+      @if (d.users.length === 0) {
+        <p class="muted small">Ningún usuario difundió esta noticia.</p>
+      } @else {
+        <ul class="user-list">
+          @for (u of d.users; track u.id) {
+            <li>
+              <span class="user-name mono">{{ '@' + u.username }}</span>
+              <span class="chip">{{ u.role }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <!-- Grafo de relaciones -->
+  @if (graph(); as g) {
+    <section class="graph-section">
+      <div class="graph-head">
+        <h2>Grafo de relaciones</h2>
+        <div class="graph-counts">
+          <span class="count-pill"><strong>{{ g.nodes.length }}</strong> nodos</span>
+          <span class="count-pill"><strong>{{ g.edges.length }}</strong> relaciones</span>
+        </div>
+      </div>
+      <p class="muted small graph-note">
+        Reflejo de cómo Neo4j conecta esta noticia con el resto de las entidades.
+        Cada grupo es un tipo de nodo del grafo.
+      </p>
+
+      <div class="graph-legend">
+        @for (label of groupOrder; track label) {
+          <span class="legend-item" [attr.data-label]="label">
+            <span class="legend-dot"></span>{{ groupLabel(label) }}
+          </span>
+        }
+      </div>
+
+      <div class="graph-groups">
+        @for (label of groupOrder; track label) {
+          @if (groupedNodes()[label].length > 0) {
+            <div class="graph-group" [attr.data-label]="label">
+              <div class="group-head">
+                <span class="group-label">{{ groupLabel(label) }}</span>
+                <span class="group-count">{{ groupedNodes()[label].length }}</span>
+              </div>
+              <div class="group-nodes">
+                @for (n of groupedNodes()[label]; track n.id) {
+                  <div class="node-card">
+                    <div class="mono tiny muted">{{ n.id }}</div>
+                    <div class="node-title">{{ n.title }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="card edges-card">
+        <h3>Aristas ({{ g.edges.length }})</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Desde</th>
+                <th>Tipo</th>
+                <th>Hacia</th>
+                <th>Propiedades</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of g.edges; track $index) {
+                <tr>
+                  <td class="mono small">{{ e.from }}</td>
+                  <td><span class="chip">{{ e.type }}</span></td>
+                  <td class="mono small">{{ e.to }}</td>
+                  <td>
+                    @for (entry of edgePropEntries(e.properties); track entry.key) {
+                      <div class="tiny">
+                        <span class="mono muted">{{ entry.key }}</span>:
+                        <span>{{ entry.value }}</span>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  }
+}

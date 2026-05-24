@@ -1,0 +1,53 @@
+<section class="page-header">
+  <h1>Noticias</h1>
+  <p class="muted">Listado completo de noticias indexadas. Click en una fila para abrir el detalle y el grafo.</p>
+</section>
+
+@if (loading()) {
+  <div class="loading">Cargando noticias…</div>
+} @else if (error()) {
+  <div class="error">{{ error() }}</div>
+} @else if (news().length === 0) {
+  <div class="empty">No hay noticias cargadas. Asegurate de haber ejecutado <code>02_seed_data.cypher</code>.</div>
+} @else {
+  <div class="card card-tight table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Fuente</th>
+          <th>Temas</th>
+          <th class="num">Score</th>
+          <th>Nivel</th>
+          <th>Publicada</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (n of news(); track n.id) {
+          <tr class="clickable" (click)="goTo(n.id)">
+            <td>
+              <a [routerLink]="['/news', n.id]" class="title">{{ n.title }}</a>
+              <div class="mono tiny muted">{{ n.id }}</div>
+            </td>
+            <td>{{ n.sourceName ?? '—' }}</td>
+            <td>
+              @for (t of n.topicNames; track t) {
+                <span class="chip">{{ t }}</span>
+              }
+            </td>
+            <td class="num">
+              <div class="score-cell">
+                <div class="mono">{{ n.riskScore ?? '—' }}</div>
+                <div [class]="scoreBarClass(n.riskLevel)">
+                  <span [style.width.%]="n.riskScore ?? 0"></span>
+                </div>
+              </div>
+            </td>
+            <td><span [class]="riskBadgeClass(n.riskLevel)">{{ n.riskLevel ?? 'N/A' }}</span></td>
+            <td class="muted small">{{ n.publishedAt ? (n.publishedAt | date:'short') : '—' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
