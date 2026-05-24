@@ -44,8 +44,32 @@ npm run build
 | `/news/:id`       | Detalle + análisis on-demand + grafo de relaciones            |
 | `/sources`        | Fuentes con `credibilityScore` visualizado                    |
 | `/reports`        | Reportes derivados client-side (distribución, top risk, etc.) |
+| `/login`          | Ingreso (email + password)                                    |
+| `/register`       | Registro (usuario, nombre, email, password + confirmación)    |
+| `/profile`        | Datos del usuario, logout y selector de tema (requiere login) |
 
 Ruta raíz `/` redirige a `/dashboard`. Cualquier ruta no encontrada también.
+La app es **pública**: dashboard, noticias y reportes funcionan sin login. Solo `/profile` está protegida (guard que redirige a `/login`).
+
+## Autenticación y tema (Fase 7.2)
+
+- **Token**: tras login/registro se guarda en `localStorage` (`nv_token`) y un interceptor lo envía como `Authorization: Bearer <token>` en cada request.
+- **Sesión persistente**: al recargar, si hay token se llama a `/api/auth/me` para restaurar el usuario.
+- **Tema claro/oscuro**: `ThemeService` aplica la clase `.theme-light` en `<html>` y guarda la preferencia en `localStorage` (`nv_theme`). Por defecto **dark**. Si hay sesión, el cambio se sincroniza con `PUT /api/auth/me/preferences`.
+
+### Probar login / register
+
+1. Backend corriendo en `localhost:8080` con Neo4j y los constraints de `cypher/01_constraints.cypher` cargados (incluye `AppUser`/`AuthSession`).
+2. `npm start` → http://localhost:4200
+3. Header → **Crear cuenta** → completar y enviar → redirige a `/profile`.
+4. **Cerrar sesión** desde el perfil → header vuelve a mostrar Ingresar / Crear cuenta.
+5. **Ingresar** con el mismo email/password.
+
+### Probar modo claro / oscuro
+
+- Botón **☀ Claro / ☾ Oscuro** en el header: alterna el tema al instante.
+- También desde `/profile` con el selector de tarjetas (Oscuro / Claro).
+- Recargar la página: la preferencia persiste (localStorage). Con sesión activa, también queda guardada en la cuenta (`themePreference`).
 
 ## Endpoints REST consumidos
 
@@ -59,8 +83,14 @@ Ruta raíz `/` redirige a `/dashboard`. Cualquier ruta no encontrada también.
 | `SourceService`         | `GET /api/sources`                        |
 | `TopicService`          | `GET /api/topics`                         |
 | `AiService`             | `POST /api/ai/analyze-news-text`          |
+| `AuthService.register`  | `POST /api/auth/register`                 |
+| `AuthService.login`     | `POST /api/auth/login`                    |
+| `AuthService.loadCurrentUser` | `GET /api/auth/me`                  |
+| `AuthService.updateThemePreference` | `PUT /api/auth/me/preferences` |
+| `AuthService.logout`    | `POST /api/auth/logout`                   |
 
 La base URL está centralizada en `src/app/core/api.config.ts`.
+El token se adjunta automáticamente vía interceptor (`core/interceptors/auth.interceptor.ts`).
 
 ## Estructura
 

@@ -489,6 +489,78 @@ En el frontend, la sección **"Asistente IA"** del detalle de noticia consume es
 
 ---
 
+## Autenticación demo (Fase 7.1)
+
+Auth **para demo académica**, no producción. Login/registro con token simple.
+
+> - **No** usa la cadena de filtros de Spring Security (solo `spring-security-crypto` para BCrypt).
+> - Las contraseñas se guardan **hasheadas con BCrypt** — nunca en texto plano.
+> - El token es un **UUID** guardado como `:AuthSession` en Neo4j (no es JWT). El frontend lo envía como `Authorization: Bearer <token>`.
+> - Pensado para el TP: simple y trazable, sin seguridad de grado productivo.
+
+### Modelo Neo4j
+
+```
+(:AppUser { id, username, email, displayName, passwordHash, role, themePreference, createdAt })
+(:AuthSession { token, createdAt, expiresAt })
+(:AppUser)-[:HAS_SESSION]->(:AuthSession)
+```
+
+`AppUser` es el usuario de la app (login), distinto del nodo `:User` del grafo de circulación de noticias. Los constraints están en `cypher/01_constraints.cypher` (re-ejecutarlo agrega los nuevos sin duplicar).
+
+### Endpoints
+
+| Método | Endpoint                     | Auth | Descripción                                  |
+|--------|------------------------------|------|----------------------------------------------|
+| POST   | `/api/auth/register`         | —    | Crea usuario + sesión, devuelve token        |
+| POST   | `/api/auth/login`            | —    | Valida credenciales, devuelve token          |
+| GET    | `/api/auth/me`               | Bearer | Usuario actual a partir del token          |
+| PUT    | `/api/auth/me/preferences`   | Bearer | Cambia `themePreference` (`dark`/`light`)  |
+| POST   | `/api/auth/logout`           | Bearer | Borra la sesión (opcional)                 |
+
+Errores: `409` email/username ya registrado · `401` credenciales o token inválidos · `400` campos faltantes.
+
+### Probar con curl
+
+```bash
+# 1) Registro (devuelve token + user)
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"maximo","email":"maximo@nexoveraz.local","displayName":"Máximo","password":"123456"}'
+
+# 2) Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"maximo@nexoveraz.local","password":"123456"}'
+
+# 3) Usuario actual (reemplazar <TOKEN> por el token recibido)
+curl http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer <TOKEN>"
+
+# 4) Cambiar tema
+curl -X PUT http://localhost:8080/api/auth/me/preferences \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"themePreference":"light"}'
+
+# 5) Logout
+curl -X POST http://localhost:8080/api/auth/logout \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta de register/login (`AuthResponse`):**
+```json
+{
+  "token": "f1e2d3c4-...",
+  "user": {
+    "id": "...", "username": "maximo", "email": "maximo@nexoveraz.local",
+    "displayName": "Máximo", "role": "USER", "themePreference": "dark"
+  }
+}
+```
+
+---
+
 ## Guion de demo
 
 Flujo recomendado para presentar el TP (~5 minutos).
@@ -558,3 +630,5 @@ Abrir **http://localhost:4200**.
 - [x] **Fase 4** — Frontend Angular SPA en `http://localhost:4200`, identidad NexoVeraz.
 - [x] **Fase 5** — Pulido visual: leyenda del grafo, disclaimer de análisis, reportes con explicaciones, acceso rápido a HIGH risk, guion de demo.
 - [x] **Fase 6** — Asistente IA modular y opcional (`disabled`/`mock`/`external`), apagado por defecto. No decide falsedad ni calcula riskScore.
+- [x] **Fase 7.1** — Backend de autenticación demo: register/login/me/preferences con BCrypt + token UUID en Neo4j (`:AppUser`, `:AuthSession`).
+- [x] **Fase 7.2** — Frontend de auth: pantallas Login/Register/Profile, interceptor Bearer, guard en `/profile`, y toggle de tema claro/oscuro sincronizado con la cuenta.

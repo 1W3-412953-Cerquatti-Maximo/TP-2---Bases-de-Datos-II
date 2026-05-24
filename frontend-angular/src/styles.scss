@@ -32,6 +32,22 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, ui-monospace, monospace;
 }
 
+/* Tema claro: se activa con la clase .theme-light en <html>.
+   Sobrescribe solo los colores; el modo oscuro queda intacto como default. */
+:root.theme-light {
+  --color-bg:       #F1F5F9;
+  --color-surface:  #FFFFFF;
+  --color-card:     #FFFFFF;
+  --color-border:   #E2E8F0;
+  --color-text:     #0F172A;
+  --color-muted:    #64748B;
+  --color-primary:  #0D9488;
+  --color-accent:   #0284C7;
+  --color-low:      #16A34A;
+  --color-medium:   #B45309;
+  --color-high:     #DC2626;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -210,3 +226,61 @@ tbody tr.clickable { cursor: pointer; }
 .score-bar.low    > span { background: var(--color-low); }
 .score-bar.medium > span { background: var(--color-medium); }
 .score-bar.high   > span { background: var(--color-high); }
+
+/* --- Formularios de autenticación (login / register) --- */
+.auth-page {
+  max-width: 440px;
+  margin: var(--space-10) auto;
+}
+.auth-card { padding: var(--space-8); }
+.auth-brand {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+.auth-brand .mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  margin: 0 auto var(--space-3);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #042F2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -1px;
+}
+.auth-brand h2 { margin: 0 0 var(--space-2); }
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+}
+.form-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+.form-field input {
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+.form-field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.auth-switch {
+  text-align: center;
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+}

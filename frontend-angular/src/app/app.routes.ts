@@ -5,6 +5,10 @@ import { NewsList } from './pages/news-list/news-list';
 import { NewsDetail } from './pages/news-detail/news-detail';
 import { Sources } from './pages/sources/sources';
 import { Reports } from './pages/reports/reports';
+import { Login } from './pages/login/login';
+import { Register } from './pages/register/register';
+import { Profile } from './pages/profile/profile';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -16,6 +20,9 @@ export const routes: Routes = [
       { path: 'news/:id', component: NewsDetail, title: 'NexoVeraz · Detalle de noticia' },
       { path: 'sources', component: Sources, title: 'NexoVeraz · Fuentes' },
       { path: 'reports', component: Reports, title: 'NexoVeraz · Reportes' },
+      { path: 'login', component: Login, title: 'NexoVeraz · Ingresar' },
+      { path: 'register', component: Register, title: 'NexoVeraz · Crear cuenta' },
+      { path: 'profile', component: Profile, canActivate: [authGuard], title: 'NexoVeraz · Mi perfil' },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

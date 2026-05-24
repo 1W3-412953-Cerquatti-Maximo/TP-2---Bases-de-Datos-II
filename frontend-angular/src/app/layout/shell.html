@@ -32,9 +32,23 @@
   <div class="main">
     <header class="topbar">
       <div class="slogan">Noticias trazables. Riesgos explicables.</div>
-      <div class="status mono small">
-        <span class="dot"></span>
-        backend localhost:8080
+      <div class="topbar-right">
+        <button type="button" class="theme-toggle" (click)="toggleTheme()" aria-label="Cambiar tema">
+          {{ theme() === 'dark' ? '☀ Claro' : '☾ Oscuro' }}
+        </button>
+
+        @if (auth.isAuthenticated()) {
+          <a routerLink="/profile" class="auth-link" routerLinkActive="active">
+            {{ auth.currentUser()?.displayName }}
+          </a>
+        } @else {
+          <a routerLink="/login" class="auth-link" routerLinkActive="active">Ingresar</a>
+          <a routerLink="/register" class="auth-link auth-link-primary" routerLinkActive="active">Crear cuenta</a>
+        }
+
+        <span class="status mono small">
+          <span class="dot"></span> localhost:8080
+        </span>
       </div>
     </header>
     <main class="content">

@@ -19,5 +19,14 @@ CREATE CONSTRAINT claim_id_unique      IF NOT EXISTS FOR (c:Claim)     REQUIRE c
 CREATE CONSTRAINT evidence_id_unique   IF NOT EXISTS FOR (e:Evidence)  REQUIRE e.id IS UNIQUE;
 CREATE CONSTRAINT factcheck_id_unique  IF NOT EXISTS FOR (f:FactCheck) REQUIRE f.id IS UNIQUE;
 
+// --- Autenticación demo (Fase 7.1) ---
+// AppUser es el usuario de la app (login/registro), distinto del nodo :User
+// del grafo de circulación de noticias.
+
+CREATE CONSTRAINT appuser_id_unique       IF NOT EXISTS FOR (u:AppUser)     REQUIRE u.id IS UNIQUE;
+CREATE CONSTRAINT appuser_email_unique     IF NOT EXISTS FOR (u:AppUser)     REQUIRE u.email IS UNIQUE;
+CREATE CONSTRAINT appuser_username_unique  IF NOT EXISTS FOR (u:AppUser)     REQUIRE u.username IS UNIQUE;
+CREATE CONSTRAINT authsession_token_unique IF NOT EXISTS FOR (s:AuthSession) REQUIRE s.token IS UNIQUE;
+
 // --- Verificación rápida (opcional) ---
 // SHOW CONSTRAINTS;

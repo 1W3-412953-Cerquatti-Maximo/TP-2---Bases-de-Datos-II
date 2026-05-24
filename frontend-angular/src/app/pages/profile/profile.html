@@ -1,0 +1,48 @@
+<section class="page-header">
+  <h1>Mi perfil</h1>
+  <p class="muted">Datos de tu cuenta y preferencia de tema visual.</p>
+</section>
+
+@if (user(); as u) {
+  <div class="grid grid-2 profile-grid">
+    <section class="card">
+      <h3>Datos del usuario</h3>
+      <dl class="kv">
+        <dt>Usuario</dt><dd class="mono">{{ '@' + u.username }}</dd>
+        <dt>Nombre</dt><dd>{{ u.displayName }}</dd>
+        <dt>Email</dt><dd>{{ u.email }}</dd>
+        <dt>Rol</dt><dd><span class="badge badge-info">{{ u.role }}</span></dd>
+        <dt>Tema</dt><dd><span class="badge">{{ u.themePreference }}</span></dd>
+      </dl>
+      <button type="button" class="btn btn-ghost logout-btn" (click)="logout()">Cerrar sesión</button>
+    </section>
+
+    <section class="card">
+      <h3>Tema visual</h3>
+      <p class="muted small">
+        Elegí el modo de visualización. La preferencia se guarda en tu cuenta
+        @if (savingTheme()) { <span class="mono">· guardando…</span> }
+      </p>
+      <div class="theme-options">
+        <button
+          type="button"
+          class="theme-option"
+          [class.active]="theme() === 'dark'"
+          (click)="setTheme('dark')">
+          <span class="theme-swatch swatch-dark"></span>
+          <span>Oscuro</span>
+        </button>
+        <button
+          type="button"
+          class="theme-option"
+          [class.active]="theme() === 'light'"
+          (click)="setTheme('light')">
+          <span class="theme-swatch swatch-light"></span>
+          <span>Claro</span>
+        </button>
+      </div>
+    </section>
+  </div>
+} @else {
+  <div class="loading">Cargando perfil…</div>
+}
