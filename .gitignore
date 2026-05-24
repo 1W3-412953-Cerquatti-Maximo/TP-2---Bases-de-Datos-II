@@ -1,0 +1,18 @@
+# Environment secrets — NEVER commit
+.env
+
+# Maven
+backend-java/target/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CLAUDE
+.claude
