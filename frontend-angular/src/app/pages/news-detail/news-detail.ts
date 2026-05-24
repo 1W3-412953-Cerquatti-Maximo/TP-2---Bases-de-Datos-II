@@ -5,8 +5,10 @@ import { forkJoin } from 'rxjs';
 
 import { NewsService } from '../../core/services/news.service';
 import { GraphService } from '../../core/services/graph.service';
+import { AiService } from '../../core/services/ai.service';
 import { NewsDetail as NewsDetailModel, RiskLevel } from '../../core/models/news.model';
 import { NewsAnalysis } from '../../core/models/analysis.model';
+import { AiAnalyzeNewsResponse } from '../../core/models/ai.model';
 import { GraphNode, GraphNodeLabel, GraphResponse } from '../../core/models/graph.model';
 
 const GROUP_ORDER: GraphNodeLabel[] = [
@@ -33,6 +35,7 @@ const GROUP_LABELS: Record<GraphNodeLabel, string> = {
 export class NewsDetail {
   private newsService = inject(NewsService);
   private graphService = inject(GraphService);
+  private aiService = inject(AiService);
   private route = inject(ActivatedRoute);
 
   readonly groupOrder = GROUP_ORDER;
@@ -46,6 +49,11 @@ export class NewsDetail {
 
   analysisLoading = signal(false);
   analysisError = signal<string | null>(null);
+
+  // Asistente IA (opcional, no afecta el riskScore determinístico)
+  aiResult = signal<AiAnalyzeNewsResponse | null>(null);
+  aiLoading = signal(false);
+  aiError = signal<string | null>(null);
 
   /** Agrupa nodos del grafo por label para la visualización. */
   groupedNodes = computed<Record<GraphNodeLabel, GraphNode[]>>(() => {
@@ -75,6 +83,8 @@ export class NewsDetail {
     this.graph.set(null);
     this.analysis.set(null);
     this.analysisError.set(null);
+    this.aiResult.set(null);
+    this.aiError.set(null);
 
     forkJoin({
       detail: this.newsService.getById(id),
@@ -115,6 +125,30 @@ export class NewsDetail {
       error: (err) => {
         this.analysisError.set(err?.message ?? 'No se pudo calcular el análisis');
         this.analysisLoading.set(false);
+      }
+    });
+  }
+
+  runAiAnalysis() {
+    const d = this.detail();
+    if (!d || this.aiLoading()) return;
+
+    this.aiLoading.set(true);
+    this.aiError.set(null);
+
+    this.aiService.analyzeNewsText({ title: d.title, content: d.content }).subscribe({
+      next: (res) => {
+        this.aiResult.set(res);
+        this.aiLoading.set(false);
+      },
+      error: (err) => {
+        // El fallo de IA no bloquea el flujo principal.
+        if (err?.status === 0) {
+          this.aiError.set('No se pudo conectar con el backend para el asistente IA.');
+        } else {
+          this.aiError.set(err?.message ?? 'El asistente IA no está disponible.');
+        }
+        this.aiLoading.set(false);
       }
     });
   }

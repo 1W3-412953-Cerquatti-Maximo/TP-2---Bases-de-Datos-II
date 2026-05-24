@@ -411,6 +411,84 @@ Detalles técnicos completos en [`frontend-angular/README.md`](frontend-angular/
 
 ---
 
+## Asistente IA (Fase 6)
+
+Integración de IA **modular, opcional y fácil de desactivar**. Por defecto está **apagada**.
+
+> **Qué NO hace la IA:** no decide si una noticia es falsa, no calcula el `riskScore` final y no reemplaza el análisis de Neo4j. El análisis de riesgo sigue siendo 100% determinístico y basado en señales del grafo (Fase 3).
+>
+> **Qué hace:** resume el texto, sugiere claims, sugiere temas y genera advertencias preliminares — todo como ayuda, sin persistir nada automáticamente.
+
+### Arquitectura
+
+- `ai/AiAnalysisPort` — interfaz (puerto).
+- `ai/DisabledAiAnalysisService` — default, responde `enabled:false`.
+- `ai/MockAiAnalysisService` — IA simulada con reglas locales (sin API externa).
+- `ai/ExternalAiAnalysisService` — estructura preparada para un proveedor externo futuro; si faltan credenciales, falla de forma controlada (no rompe).
+- `config/AiConfig` — selecciona la implementación según configuración.
+
+### Configuración
+
+| Variable de entorno    | Default     | Valores                          |
+|------------------------|-------------|----------------------------------|
+| `AI_ENABLED`           | `false`     | `true` / `false`                 |
+| `AI_PROVIDER`          | `disabled`  | `disabled` / `mock` / `external` |
+| `AI_EXTERNAL_API_KEY`  | *(vacío)*   | clave del proveedor (futuro)     |
+| `AI_EXTERNAL_ENDPOINT` | *(vacío)*   | URL del proveedor (futuro)       |
+
+**Dejar IA apagada (default):** no configurar nada, o `AI_ENABLED=false`.
+
+**Usar modo mock:**
+```powershell
+$env:AI_ENABLED = "true"
+$env:AI_PROVIDER = "mock"
+# luego: mvn spring-boot:run
+```
+
+**Conectar un proveedor externo (futuro):** poner `AI_PROVIDER=external` y definir `AI_EXTERNAL_API_KEY` + `AI_EXTERNAL_ENDPOINT`. La clase `ExternalAiAnalysisService` ya tiene el punto de extensión para la llamada HTTP real; mientras no esté implementada o falten credenciales, responde de forma controlada sin afectar el resto del sistema. **Las API keys nunca se hardcodean** — solo se leen de variables de entorno.
+
+### Endpoint
+
+`POST /api/ai/analyze-news-text`
+
+```bash
+# Request
+curl -X POST http://localhost:8080/api/ai/analyze-news-text \
+  -H "Content-Type: application/json" \
+  -d '{"title":"El 5G provoca una cura milagrosa","content":"Fuentes anónimas aseguran un colapso inminente."}'
+```
+
+**Respuesta con IA apagada (default):**
+```json
+{
+  "enabled": false,
+  "provider": "disabled",
+  "summary": "El asistente de IA está desactivado. El análisis de riesgo se realiza de forma determinística sobre el grafo Neo4j.",
+  "suggestedClaims": [],
+  "suggestedTopics": [],
+  "warnings": []
+}
+```
+
+**Respuesta en modo mock** (`AI_ENABLED=true`, `AI_PROVIDER=mock`):
+```json
+{
+  "enabled": true,
+  "provider": "mock",
+  "summary": "Resumen automático (mock): Fuentes anónimas aseguran un colapso inminente.",
+  "suggestedClaims": ["El 5G provoca una cura milagrosa", "Fuentes anónimas aseguran un colapso inminente."],
+  "suggestedTopics": ["Ciencia y Tecnología", "Salud"],
+  "warnings": [
+    "Lenguaje alarmista detectado ('colapso'): verificar si la afirmación está respaldada o es sensacionalista.",
+    "Afirmación extraordinaria ('cura milagrosa') sin evidencia: requiere fuentes científicas verificables."
+  ]
+}
+```
+
+En el frontend, la sección **"Asistente IA"** del detalle de noticia consume este endpoint: muestra claramente si la IA está apagada, y si está activa lista summary / temas / claims / warnings — sin mezclarse con el `riskScore` determinístico.
+
+---
+
 ## Guion de demo
 
 Flujo recomendado para presentar el TP (~5 minutos).
@@ -479,3 +557,4 @@ Abrir **http://localhost:4200**.
 - [x] **Fase 3** — Análisis de riesgo determinístico y explicable (`/api/news/{id}/analysis`).
 - [x] **Fase 4** — Frontend Angular SPA en `http://localhost:4200`, identidad NexoVeraz.
 - [x] **Fase 5** — Pulido visual: leyenda del grafo, disclaimer de análisis, reportes con explicaciones, acceso rápido a HIGH risk, guion de demo.
+- [x] **Fase 6** — Asistente IA modular y opcional (`disabled`/`mock`/`external`), apagado por defecto. No decide falsedad ni calcula riskScore.

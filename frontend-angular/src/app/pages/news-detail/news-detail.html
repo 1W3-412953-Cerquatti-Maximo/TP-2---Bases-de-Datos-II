@@ -111,6 +111,88 @@
     }
   </section>
 
+  <!-- Asistente IA (opcional) -->
+  <section class="card ai-section">
+    <div class="ai-head">
+      <div>
+        <h3>Asistente IA <span class="badge badge-info">opcional</span></h3>
+        <p class="muted small">
+          Resume y sugiere claims/temas a partir del texto. <strong>No</strong> decide falsedad
+          ni modifica el <code>riskScore</code> determinístico del grafo.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        (click)="runAiAnalysis()"
+        [disabled]="aiLoading()">
+        {{ aiLoading() ? 'Consultando…' : 'Analizar texto con IA' }}
+      </button>
+    </div>
+
+    @if (aiError()) {
+      <div class="error">{{ aiError() }}</div>
+    }
+
+    @if (aiResult(); as ai) {
+      @if (!ai.enabled) {
+        <div class="ai-disabled">
+          <span class="badge">IA desactivada</span>
+          <p class="muted small">{{ ai.summary }}</p>
+          @if (ai.warnings.length > 0) {
+            <ul class="ai-warnings">
+              @for (w of ai.warnings; track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+        </div>
+      } @else {
+        <div class="ai-body">
+          <div class="ai-provider tiny muted">
+            proveedor: <span class="mono">{{ ai.provider }}</span>
+          </div>
+
+          <div class="ai-block">
+            <h4>Resumen</h4>
+            <p>{{ ai.summary }}</p>
+          </div>
+
+          @if (ai.suggestedTopics.length > 0) {
+            <div class="ai-block">
+              <h4>Temas sugeridos</h4>
+              <div>
+                @for (t of ai.suggestedTopics; track t) {
+                  <span class="chip">{{ t }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          @if (ai.suggestedClaims.length > 0) {
+            <div class="ai-block">
+              <h4>Claims sugeridos</h4>
+              <ul class="ai-list">
+                @for (c of ai.suggestedClaims; track c) { <li>{{ c }}</li> }
+              </ul>
+            </div>
+          }
+
+          @if (ai.warnings.length > 0) {
+            <div class="ai-block">
+              <h4>Advertencias preliminares</h4>
+              <ul class="ai-warnings">
+                @for (w of ai.warnings; track w) { <li>{{ w }}</li> }
+              </ul>
+            </div>
+          }
+
+          <p class="ai-note tiny muted">
+            Sugerencias generadas por IA. No se guardan automáticamente ni alteran el análisis del grafo.
+          </p>
+        </div>
+      }
+    }
+  </section>
+
   <!-- Datos asociados -->
   <div class="grid grid-2 detail-grid">
 

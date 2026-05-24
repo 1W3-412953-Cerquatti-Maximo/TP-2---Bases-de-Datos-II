@@ -58,6 +58,7 @@ Ruta raíz `/` redirige a `/dashboard`. Cualquier ruta no encontrada también.
 | `GraphService`          | `GET /api/graph/news/{id}`                |
 | `SourceService`         | `GET /api/sources`                        |
 | `TopicService`          | `GET /api/topics`                         |
+| `AiService`             | `POST /api/ai/analyze-news-text`          |
 
 La base URL está centralizada en `src/app/core/api.config.ts`.
 
@@ -75,8 +76,9 @@ src/
     │   ├── api.config.ts                 API_BASE_URL
     │   ├── models/                       NewsSummary, NewsDetail, Source, Topic,
     │   │                                 DashboardSummary, NewsAnalysis, RiskSignal,
-    │   │                                 GraphNode, GraphEdge, GraphResponse
-    │   └── services/                     News, Source, Topic, Dashboard, Graph
+    │   │                                 GraphNode, GraphEdge, GraphResponse,
+    │   │                                 AiAnalyzeNewsRequest, AiAnalyzeNewsResponse
+    │   └── services/                     News, Source, Topic, Dashboard, Graph, Ai
     ├── layout/
     │   └── shell.{ts,html,scss}          Sidebar + topbar + <router-outlet>
     └── pages/
