@@ -2,7 +2,8 @@
   <h1>Reportes</h1>
   <p class="muted">
     Reportes calculados del lado del cliente a partir de
-    <code>/api/news</code> y <code>/api/sources</code>.
+    <code>/api/news</code> y <code>/api/sources</code>. Útiles para priorizar la revisión
+    y detectar focos de desinformación.
   </p>
 </section>
 
@@ -14,6 +15,10 @@
 
   <section class="card report">
     <h3>Distribución de noticias por riesgo</h3>
+    <p class="report-help muted small">
+      Muestra qué porción del corpus indexado está clasificada en cada nivel. Una proporción
+      alta de <strong>HIGH</strong> indica que hay mucho contenido que requiere verificación urgente.
+    </p>
     <div class="dist">
       @for (b of distribution(); track b.level) {
         <div class="dist-row">
@@ -31,7 +36,32 @@
 
   <div class="grid grid-2 reports-grid">
     <section class="card report">
-      <h3>Fuentes ordenadas por credibilidad</h3>
+      <h3>Top noticias por riskScore</h3>
+      <p class="report-help muted small">
+        Las noticias con mayor <code>riskScore</code> encabezan la cola prioritaria de
+        revisión: son las que concentran más señales de riesgo en el grafo.
+      </p>
+      <ul class="top-news">
+        @for (n of topRiskyNews(); track n.id) {
+          <li>
+            <div class="top-news-head">
+              <span [class]="badgeClass(n.riskLevel)">{{ n.riskLevel ?? '—' }}</span>
+              <span class="mono">{{ n.riskScore ?? '—' }}</span>
+            </div>
+            <a [routerLink]="['/news', n.id]" class="top-news-title">{{ n.title }}</a>
+            <div class="muted tiny">{{ n.sourceName ?? '—' }}</div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="card report">
+      <h3>Fuentes menos confiables</h3>
+      <p class="report-help muted small">
+        Ordenadas por menor <code>credibilityScore</code>. Una fuente bajo
+        <strong>0.40</strong> aporta +25 puntos al riesgo de cada noticia que publica
+        (señal <code>LOW_CREDIBILITY_SOURCE</code>).
+      </p>
       <div class="table-wrapper">
         <table>
           <thead>
@@ -42,7 +72,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (s of sourcesByCredibility(); track s.id) {
+            @for (s of sourcesByLowCredibility(); track s.id) {
               <tr>
                 <td>{{ s.name }}</td>
                 <td><span class="chip">{{ s.type }}</span></td>
@@ -59,22 +89,6 @@
           </tbody>
         </table>
       </div>
-    </section>
-
-    <section class="card report">
-      <h3>Top noticias por riskScore</h3>
-      <ul class="top-news">
-        @for (n of topRiskyNews(); track n.id) {
-          <li>
-            <div class="top-news-head">
-              <span [class]="badgeClass(n.riskLevel)">{{ n.riskLevel ?? '—' }}</span>
-              <span class="mono">{{ n.riskScore ?? '—' }}</span>
-            </div>
-            <a [routerLink]="['/news', n.id]" class="top-news-title">{{ n.title }}</a>
-            <div class="muted tiny">{{ n.sourceName ?? '—' }}</div>
-          </li>
-        }
-      </ul>
     </section>
   </div>
 }

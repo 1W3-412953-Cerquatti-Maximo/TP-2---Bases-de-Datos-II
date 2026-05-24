@@ -43,10 +43,10 @@ export class Reports {
     }));
   });
 
-  /** Fuentes ordenadas por credibilidad descendente. */
-  sourcesByCredibility = computed(() =>
+  /** Fuentes ordenadas por MENOR credibilidad (las más riesgosas primero). */
+  sourcesByLowCredibility = computed(() =>
     [...this.sources()].sort((a, b) =>
-      (b.credibilityScore ?? 0) - (a.credibilityScore ?? 0)
+      (a.credibilityScore ?? 0) - (b.credibilityScore ?? 0)
     )
   );
 
@@ -68,7 +68,11 @@ export class Reports {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err?.message ?? 'No se pudo cargar los reportes');
+        if (err?.status === 0) {
+          this.error.set('No se pudo conectar con el backend (¿está corriendo en http://localhost:8080?).');
+        } else {
+          this.error.set(err?.message ?? 'No se pudo cargar los reportes');
+        }
         this.loading.set(false);
       }
     });

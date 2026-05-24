@@ -411,9 +411,71 @@ Detalles técnicos completos en [`frontend-angular/README.md`](frontend-angular/
 
 ---
 
+## Guion de demo
+
+Flujo recomendado para presentar el TP (~5 minutos).
+
+### 0. Setup previo
+
+```bash
+# Neo4j Desktop levantado, base `antifakenews` con los 3 scripts Cypher cargados.
+
+# Terminal 1 — backend
+cd backend-java
+mvn spring-boot:run            # http://localhost:8080
+
+# Terminal 2 — frontend
+cd frontend-angular
+npm install                    # solo la primera vez
+npm start                      # http://localhost:4200
+```
+
+Abrir **http://localhost:4200**.
+
+### 1. Dashboard (30 s)
+- Mostrar el bloque intro de NexoVeraz y el slogan.
+- Tarjetas LOW / MEDIUM / HIGH con la distribución de riesgo.
+- Conteos de los 8 tipos de nodo del grafo.
+- Señalar el bloque **Acceso rápido — noticias de alto riesgo**.
+
+### 2. Lista de noticias (45 s)
+- Sidebar → **Noticias**.
+- Recorrer la tabla: cada fila muestra fuente, temas (chips), barra de `riskScore` y badge de nivel.
+
+### 3. Detalle de `news-003` (1 min)
+- Abrir *"El 5G estaría provocando una epidemia de dolores de cabeza"*.
+- Hero: título, badge de riesgo, fuente **VerdadOculta** (baja credibilidad), barra de score.
+- Recorrer las secciones: fuente, temas, claims, evidencias, fact checks, posts, usuarios.
+
+### 4. Ejecutar análisis de riesgo (1 min)
+- Botón **Calcular análisis de riesgo**.
+- Leer el disclaimer: *el sistema no afirma que sea falsa, clasifica riesgo*.
+- Leer el `summary` y recorrer las **señales detectadas** (cada una con su código y puntos).
+- Mensaje clave: cada punto del score es trazable a una señal. No es IA, es lógica explícita.
+
+### 5. Grafo de relaciones (1 min)
+- Scroll a **Grafo de relaciones**.
+- Mostrar la **leyenda de colores** y los contadores de nodos / relaciones.
+- Recorrer los grupos por tipo de nodo (News, Source, Topic, Claim, Evidence, FactCheck, Post, User).
+- Mostrar la **tabla de aristas** con sus propiedades (`reach`, `engagementCount`, `sharedAt`, etc.).
+
+### 6. Reportes (45 s)
+- Sidebar → **Reportes**.
+- Distribución por riesgo (barras).
+- Top 5 noticias por `riskScore`.
+- **Fuentes menos confiables** — el origen del +25 al riesgo.
+
+### Cierre
+- NexoVeraz **no afirma** que una noticia sea falsa.
+- Clasifica **riesgo** según señales objetivas del grafo.
+- Es **trazable**, **determinístico** y **explicable**.
+
+---
+
 ## Roadmap
 
 - [x] **Fase 1** — Modelo de grafo, scripts Cypher, conexión Java↔Neo4j validada.
 - [x] **Fase 2** — Endpoints REST sobre el modelo (lectura por nodo + recorridos + grafo + dashboard) + CORS.
 - [x] **Fase 3** — Análisis de riesgo determinístico y explicable (`/api/news/{id}/analysis`).
 - [x] **Fase 4** — Frontend Angular SPA en `http://localhost:4200`, identidad NexoVeraz.
+- [x] **Fase 5** — Pulido visual: leyenda del grafo, disclaimer de análisis, reportes con explicaciones, acceso rápido a HIGH risk, guion de demo.

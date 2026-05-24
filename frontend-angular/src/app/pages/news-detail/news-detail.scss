@@ -179,15 +179,55 @@
 .graph-section { margin-top: var(--space-8); }
 .graph-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
   margin-bottom: var(--space-2);
 }
+.graph-head h2 { margin: 0; }
+.graph-counts { display: flex; gap: var(--space-2); }
+.count-pill {
+  padding: 4px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.count-pill strong { color: var(--color-text); font-family: var(--font-mono); }
+
 .graph-note { margin-bottom: var(--space-4); }
+
+/* Leyenda de colores por tipo de nodo */
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  background: var(--color-accent);
+}
 
 .graph-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -199,14 +239,26 @@
   padding: var(--space-4);
   border-top: 3px solid var(--color-accent);
 }
-.graph-group[data-label="News"]      { border-top-color: var(--color-primary); }
-.graph-group[data-label="Source"]    { border-top-color: var(--color-accent); }
-.graph-group[data-label="Topic"]     { border-top-color: var(--color-medium); }
-.graph-group[data-label="Claim"]     { border-top-color: var(--color-high); }
-.graph-group[data-label="Evidence"]  { border-top-color: var(--color-low); }
-.graph-group[data-label="FactCheck"] { border-top-color: var(--color-primary); }
-.graph-group[data-label="Post"]      { border-top-color: var(--color-accent); }
-.graph-group[data-label="User"]      { border-top-color: var(--color-medium); }
+
+/* Color distinto por tipo de nodo — borde superior del grupo */
+.graph-group[data-label="News"]      { border-top-color: #14B8A6; }
+.graph-group[data-label="Source"]    { border-top-color: #38BDF8; }
+.graph-group[data-label="Topic"]     { border-top-color: #F59E0B; }
+.graph-group[data-label="Claim"]     { border-top-color: #EF4444; }
+.graph-group[data-label="Evidence"]  { border-top-color: #22C55E; }
+.graph-group[data-label="FactCheck"] { border-top-color: #A78BFA; }
+.graph-group[data-label="Post"]      { border-top-color: #06B6D4; }
+.graph-group[data-label="User"]      { border-top-color: #EC4899; }
+
+/* Mismo color en el dot de la leyenda */
+.legend-item[data-label="News"]      .legend-dot { background: #14B8A6; }
+.legend-item[data-label="Source"]    .legend-dot { background: #38BDF8; }
+.legend-item[data-label="Topic"]     .legend-dot { background: #F59E0B; }
+.legend-item[data-label="Claim"]     .legend-dot { background: #EF4444; }
+.legend-item[data-label="Evidence"]  .legend-dot { background: #22C55E; }
+.legend-item[data-label="FactCheck"] .legend-dot { background: #A78BFA; }
+.legend-item[data-label="Post"]      .legend-dot { background: #06B6D4; }
+.legend-item[data-label="User"]      .legend-dot { background: #EC4899; }
 
 .group-head {
   display: flex;
