@@ -39,8 +39,8 @@ public class NewsAnalysisService {
         this.repository = repository;
     }
 
-    public NewsAnalysisDto analyze(String id) {
-        AnalysisInputs inputs = repository.fetchSignals(id)
+    public NewsAnalysisDto analyze(String userId, String id) {
+        AnalysisInputs inputs = repository.fetchSignals(userId, id)
                 .orElseThrow(() -> new NotFoundException("News not found: " + id));
 
         List<RiskSignalDto> signals = new ArrayList<>();

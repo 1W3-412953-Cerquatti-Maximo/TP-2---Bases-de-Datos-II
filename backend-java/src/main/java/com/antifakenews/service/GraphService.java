@@ -14,8 +14,8 @@ public class GraphService {
         this.graphRepository = graphRepository;
     }
 
-    public GraphResponseDto getNewsGraph(String id) {
-        return graphRepository.getNewsGraph(id)
+    public GraphResponseDto getNewsGraph(String userId, String id) {
+        return graphRepository.getNewsGraph(userId, id)
                 .orElseThrow(() -> new NotFoundException("News not found: " + id));
     }
 }

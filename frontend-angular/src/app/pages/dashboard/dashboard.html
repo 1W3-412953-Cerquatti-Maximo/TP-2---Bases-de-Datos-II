@@ -96,6 +96,16 @@
     </div>
   </section>
 
+  @if (d.totalNews === 0) {
+    <section class="card empty-state">
+      <h3>Todavía no tenés noticias</h3>
+      <p class="muted">
+        Tu cuenta aún no tiene noticias asociadas. Cuando cargues noticias propias
+        (Fase 8), el dashboard, el listado y los reportes se irán completando.
+      </p>
+    </section>
+  }
+
   @if (highRiskShortcuts().length > 0) {
     <section class="card high-risk">
       <div class="hr-head">

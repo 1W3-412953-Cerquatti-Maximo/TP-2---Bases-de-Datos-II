@@ -561,6 +561,73 @@ curl -X POST http://localhost:8080/api/auth/logout \
 
 ---
 
+## Flujo protegido y pertenencia de noticias (Fase 7.3)
+
+A partir de esta fase la app **requiere sesión** y cada usuario ve **solo sus propias noticias**.
+
+### Relación de pertenencia
+
+```
+(:AppUser)-[:OWNS_NEWS { createdAt, origin }]->(:News)
+```
+
+Define qué noticias puede ver cada usuario. Todas las consultas de datos parten del usuario autenticado:
+
+```cypher
+MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News)
+// ... y desde ahí se recorre el resto del grafo
+```
+
+### Cuenta demo
+
+Un inicializador (`DemoDataInitializer`, activable con `demo.seed.enabled`, default `true`) crea/actualiza al arrancar la cuenta demo y le **vincula todas las noticias seed** sin dueño:
+
+| Campo    | Valor                   |
+|----------|-------------------------|
+| email    | `demo@nexoveraz.local`  |
+| password | `123456`                |
+| username | `demo`                  |
+| rol      | `USER`                  |
+
+> La contraseña se guarda **hasheada con BCrypt** — nunca en texto plano. El proceso es idempotente (no duplica usuario ni relaciones).
+
+**Una cuenta nueva arranca sin noticias**: dashboard en cero, listado/reportes/fuentes vacíos hasta que cargue las suyas (Fase 8).
+
+### Endpoints protegidos vs públicos
+
+| Público                        | Protegido (requiere `Authorization: Bearer <token>`) |
+|--------------------------------|-------------------------------------------------------|
+| `GET /api/health`              | `GET /api/dashboard/summary`                          |
+| `GET /api/health/neo4j`        | `GET /api/news`, `GET /api/news/{id}`                 |
+| `POST /api/auth/register`      | `GET /api/news/{id}/analysis`                         |
+| `POST /api/auth/login`         | `GET /api/graph/news/{id}`                            |
+|                                | `GET /api/sources`, `GET /api/topics`                 |
+|                                | `POST /api/ai/analyze-news-text`                      |
+
+Sin token (o token inválido) → **401**. Noticia que no pertenece al usuario → **404** (no se filtra su existencia).
+
+La validación de token la centraliza `AuthenticatedUserResolver` (lee el header Bearer, resuelve el usuario; no usa la cadena de filtros de Spring Security).
+
+### Probar con curl
+
+```bash
+# 1) Login demo → copiar el token
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@nexoveraz.local","password":"123456"}'
+
+# 2) Listar noticias del usuario (con token)
+curl http://localhost:8080/api/news -H "Authorization: Bearer <TOKEN>"
+
+# 3) Sin token → 401
+curl -i http://localhost:8080/api/news
+
+# 4) Dashboard del usuario
+curl http://localhost:8080/api/dashboard/summary -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
 ## Guion de demo
 
 Flujo recomendado para presentar el TP (~5 minutos).
@@ -632,3 +699,4 @@ Abrir **http://localhost:4200**.
 - [x] **Fase 6** — Asistente IA modular y opcional (`disabled`/`mock`/`external`), apagado por defecto. No decide falsedad ni calcula riskScore.
 - [x] **Fase 7.1** — Backend de autenticación demo: register/login/me/preferences con BCrypt + token UUID en Neo4j (`:AppUser`, `:AuthSession`).
 - [x] **Fase 7.2** — Frontend de auth: pantallas Login/Register/Profile, interceptor Bearer, guard en `/profile`, y toggle de tema claro/oscuro sincronizado con la cuenta.
+- [x] **Fase 7.3** — Flujo protegido por login: endpoints protegidos por token, datos filtrados por `OWNS_NEWS`, cuenta demo con seed, cuenta nueva vacía, redirección a `/login` sin sesión.

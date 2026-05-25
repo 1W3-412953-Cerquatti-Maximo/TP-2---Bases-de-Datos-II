@@ -1,1 +1,13 @@
 .auth-submit { width: 100%; justify-content: center; margin-top: var(--space-2); }
+
+.demo-hint {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+.demo-btn { width: 100%; justify-content: center; }

@@ -27,10 +27,10 @@ public class GraphRepository {
         this.sessionConfig = sessionConfig;
     }
 
-    public Optional<GraphResponseDto> getNewsGraph(String id) {
+    public Optional<GraphResponseDto> getNewsGraph(String userId, String id) {
         try (Session session = driver.session(sessionConfig)) {
             return session.executeRead(tx -> {
-                String newsTitle = fetchNewsTitle(tx, id);
+                String newsTitle = fetchNewsTitle(tx, userId, id);
                 if (newsTitle == null) {
                     return Optional.<GraphResponseDto>empty();
                 }
@@ -50,8 +50,11 @@ public class GraphRepository {
         }
     }
 
-    private String fetchNewsTitle(org.neo4j.driver.TransactionContext tx, String id) {
-        Result r = tx.run("MATCH (n:News {id: $id}) RETURN n.title AS title", Map.of("id", id));
+    private String fetchNewsTitle(org.neo4j.driver.TransactionContext tx, String userId, String id) {
+        // La pertenencia se valida acá: si la noticia no es del usuario, no hay título y el grafo es 404.
+        Result r = tx.run(
+                "MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $id}) RETURN n.title AS title",
+                Map.of("userId", userId, "id", id));
         if (!r.hasNext()) return null;
         return r.next().get("title").asString(null);
     }

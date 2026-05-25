@@ -67,7 +67,8 @@ export class AuthService {
     }
   }
 
-  private clearSession(): void {
+  /** Limpia el estado local (token + usuario). No hace request al backend. */
+  clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
     this.currentUserSig.set(null);
   }

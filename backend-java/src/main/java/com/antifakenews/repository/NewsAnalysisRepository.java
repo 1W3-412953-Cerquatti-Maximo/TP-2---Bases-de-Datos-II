@@ -27,9 +27,9 @@ public class NewsAnalysisRepository {
      *
      * Devuelve Optional.empty() si la noticia no existe.
      */
-    public Optional<AnalysisInputs> fetchSignals(String id) {
+    public Optional<AnalysisInputs> fetchSignals(String userId, String id) {
         final String cypher = """
-                MATCH (n:News {id: $id})
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $id})
                 OPTIONAL MATCH (n)-[:PUBLISHED_BY]->(src:Source)
                 CALL (n) {
                   OPTIONAL MATCH (n)-[:CONTAINS]->(:Claim)<-[:CHECKS]-(fc:FactCheck)
@@ -65,7 +65,7 @@ public class NewsAnalysisRepository {
 
         try (Session session = driver.session(sessionConfig)) {
             return session.executeRead(tx -> {
-                Result result = tx.run(cypher, Map.of("id", id));
+                Result result = tx.run(cypher, Map.of("userId", userId, "id", id));
                 if (!result.hasNext()) {
                     return Optional.<AnalysisInputs>empty();
                 }

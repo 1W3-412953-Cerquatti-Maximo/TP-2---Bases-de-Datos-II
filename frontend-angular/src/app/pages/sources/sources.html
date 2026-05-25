@@ -10,6 +10,8 @@
   <div class="loading">Cargando fuentes…</div>
 } @else if (error()) {
   <div class="error">{{ error() }}</div>
+} @else if (sources().length === 0) {
+  <div class="empty">No hay fuentes asociadas a tus noticias todavía.</div>
 } @else {
   <div class="card card-tight table-wrapper">
     <table>

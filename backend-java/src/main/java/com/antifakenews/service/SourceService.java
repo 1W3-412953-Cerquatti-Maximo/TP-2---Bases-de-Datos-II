@@ -15,7 +15,7 @@ public class SourceService {
         this.sourceRepository = sourceRepository;
     }
 
-    public List<SourceDto> listAll() {
-        return sourceRepository.findAll();
+    public List<SourceDto> listAll(String userId) {
+        return sourceRepository.findAll(userId);
     }
 }

@@ -32,9 +32,9 @@ public class NewsRepository {
         this.sessionConfig = sessionConfig;
     }
 
-    public List<NewsSummaryDto> findAll() {
+    public List<NewsSummaryDto> findAll(String userId) {
         final String cypher = """
-                MATCH (n:News)
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News)
                 OPTIONAL MATCH (n)-[:PUBLISHED_BY]->(s:Source)
                 OPTIONAL MATCH (n)-[:ABOUT]->(t:Topic)
                 RETURN n.id          AS id,
@@ -50,7 +50,7 @@ public class NewsRepository {
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
-            return session.executeRead(tx -> tx.run(cypher).list(r -> new NewsSummaryDto(
+            return session.executeRead(tx -> tx.run(cypher, Map.of("userId", userId)).list(r -> new NewsSummaryDto(
                     r.get("id").asString(null),
                     r.get("title").asString(null),
                     r.get("url").asString(null),
@@ -64,9 +64,9 @@ public class NewsRepository {
         }
     }
 
-    public Optional<NewsDetailDto> findById(String id) {
+    public Optional<NewsDetailDto> findById(String userId, String id) {
         final String cypher = """
-                MATCH (n:News {id: $id})
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $id})
                 OPTIONAL MATCH (n)-[:PUBLISHED_BY]->(src:Source)
                 CALL (n) {
                   OPTIONAL MATCH (n)-[:ABOUT]->(t:Topic)
@@ -110,7 +110,7 @@ public class NewsRepository {
 
         try (Session session = driver.session(sessionConfig)) {
             return session.executeRead(tx -> {
-                Result result = tx.run(cypher, Map.of("id", id));
+                Result result = tx.run(cypher, Map.of("userId", userId, "id", id));
                 if (!result.hasNext()) {
                     return Optional.<NewsDetailDto>empty();
                 }

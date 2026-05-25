@@ -11,6 +11,8 @@
   <div class="loading">Calculando reportes…</div>
 } @else if (error()) {
   <div class="error">{{ error() }}</div>
+} @else if (news().length === 0) {
+  <div class="empty">No hay datos suficientes para generar reportes.</div>
 } @else {
 
   <section class="card report">

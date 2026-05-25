@@ -15,7 +15,7 @@ public class TopicService {
         this.topicRepository = topicRepository;
     }
 
-    public List<TopicDto> listAll() {
-        return topicRepository.findAll();
+    public List<TopicDto> listAll(String userId) {
+        return topicRepository.findAll(userId);
     }
 }

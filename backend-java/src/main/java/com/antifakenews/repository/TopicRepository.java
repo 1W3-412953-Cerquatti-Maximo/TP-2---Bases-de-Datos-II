@@ -7,6 +7,7 @@ import org.neo4j.driver.SessionConfig;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class TopicRepository {
@@ -19,15 +20,16 @@ public class TopicRepository {
         this.sessionConfig = sessionConfig;
     }
 
-    public List<TopicDto> findAll() {
+    public List<TopicDto> findAll(String userId) {
         final String cypher = """
-                MATCH (t:Topic)
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(:News)-[:ABOUT]->(t:Topic)
+                WITH DISTINCT t
                 RETURN t.id AS id, t.name AS name, t.slug AS slug
                 ORDER BY t.name ASC
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
-            return session.executeRead(tx -> tx.run(cypher).list(r -> new TopicDto(
+            return session.executeRead(tx -> tx.run(cypher, Map.of("userId", userId)).list(r -> new TopicDto(
                     r.get("id").asString(null),
                     r.get("name").asString(null),
                     r.get("slug").asString(null)

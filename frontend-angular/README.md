@@ -48,8 +48,11 @@ npm run build
 | `/register`       | Registro (usuario, nombre, email, password + confirmación)    |
 | `/profile`        | Datos del usuario, logout y selector de tema (requiere login) |
 
-Ruta raíz `/` redirige a `/dashboard`. Cualquier ruta no encontrada también.
-La app es **pública**: dashboard, noticias y reportes funcionan sin login. Solo `/profile` está protegida (guard que redirige a `/login`).
+**Flujo protegido (Fase 7.3):** la app **requiere sesión**. Al abrir `http://localhost:4200` sin token, el guard del layout redirige a `/login`. Solo `/login` y `/register` son públicas (y se muestran sin sidebar/header). Dashboard, noticias, detalle, fuentes, reportes y profile están dentro del layout principal y protegidos. Cualquier ruta desconocida redirige a `/dashboard` (que a su vez exige login).
+
+Si un endpoint responde `401`, el interceptor limpia la sesión y redirige a `/login`.
+
+> **Cuenta demo** (botón "Usar cuenta demo" en el login): `demo@nexoveraz.local` / `123456`. Una cuenta nueva arranca **sin noticias** (dashboard en cero, listados vacíos).
 
 ## Autenticación y tema (Fase 7.2)
 

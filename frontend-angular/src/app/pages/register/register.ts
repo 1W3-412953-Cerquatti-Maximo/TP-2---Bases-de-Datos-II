@@ -42,7 +42,7 @@ export class Register {
     }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/profile']);
+        this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.loading.set(false);

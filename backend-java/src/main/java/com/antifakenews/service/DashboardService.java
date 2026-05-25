@@ -13,7 +13,7 @@ public class DashboardService {
         this.dashboardRepository = dashboardRepository;
     }
 
-    public DashboardSummaryDto getSummary() {
-        return dashboardRepository.getSummary();
+    public DashboardSummaryDto getSummary(String userId) {
+        return dashboardRepository.getSummary(userId);
     }
 }

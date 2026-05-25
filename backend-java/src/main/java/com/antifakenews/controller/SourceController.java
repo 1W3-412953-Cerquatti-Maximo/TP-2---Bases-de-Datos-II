@@ -1,6 +1,7 @@
 package com.antifakenews.controller;
 
 import com.antifakenews.dto.SourceDto;
+import com.antifakenews.security.AuthenticatedUserResolver;
 import com.antifakenews.service.SourceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,13 +14,15 @@ import java.util.List;
 public class SourceController {
 
     private final SourceService sourceService;
+    private final AuthenticatedUserResolver currentUser;
 
-    public SourceController(SourceService sourceService) {
+    public SourceController(SourceService sourceService, AuthenticatedUserResolver currentUser) {
         this.sourceService = sourceService;
+        this.currentUser = currentUser;
     }
 
     @GetMapping
     public List<SourceDto> listAll() {
-        return sourceService.listAll();
+        return sourceService.listAll(currentUser.requireUserId());
     }
 }

@@ -19,6 +19,11 @@ export class Login {
   loading = signal(false);
   error = signal<string | null>(null);
 
+  useDemoAccount(): void {
+    this.email = 'demo@nexoveraz.local';
+    this.password = '123456';
+  }
+
   submit(): void {
     if (!this.email.trim() || !this.password) {
       this.error.set('Completá email y contraseña.');
@@ -30,7 +35,7 @@ export class Login {
     this.auth.login({ email: this.email.trim(), password: this.password }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/profile']);
+        this.router.navigate(['/dashboard']);
       },
       error: (err) => {
         this.loading.set(false);

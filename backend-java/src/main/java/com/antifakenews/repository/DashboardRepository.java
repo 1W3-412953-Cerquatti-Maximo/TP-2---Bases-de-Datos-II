@@ -7,6 +7,8 @@ import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
+
 @Repository
 public class DashboardRepository {
 
@@ -18,27 +20,47 @@ public class DashboardRepository {
         this.sessionConfig = sessionConfig;
     }
 
-    public DashboardSummaryDto getSummary() {
+    /**
+     * Conteos del subgrafo del usuario: solo las noticias que posee (OWNS_NEWS)
+     * y las entidades alcanzables desde ellas. Una cuenta sin noticias da todo en 0.
+     */
+    public DashboardSummaryDto getSummary(String userId) {
         final String cypher = """
-                CALL {
-                  MATCH (n:News)
+                MATCH (owner:AppUser {id: $userId})
+                CALL (owner) {
+                  OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(n:News)
                   RETURN count(n) AS totalNews,
                          sum(CASE WHEN n.riskLevel = 'HIGH'   THEN 1 ELSE 0 END) AS highRiskNews,
                          sum(CASE WHEN n.riskLevel = 'MEDIUM' THEN 1 ELSE 0 END) AS mediumRiskNews,
                          sum(CASE WHEN n.riskLevel = 'LOW'    THEN 1 ELSE 0 END) AS lowRiskNews
                 }
-                CALL { MATCH (s:Source)    RETURN count(s) AS totalSources }
-                CALL { MATCH (c:Claim)     RETURN count(c) AS totalClaims }
-                CALL { MATCH (f:FactCheck) RETURN count(f) AS totalFactChecks }
-                CALL { MATCH (p:Post)      RETURN count(p) AS totalPosts }
-                CALL { MATCH (u:User)      RETURN count(u) AS totalUsers }
+                CALL (owner) {
+                  OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(:News)-[:PUBLISHED_BY]->(s:Source)
+                  RETURN count(DISTINCT s) AS totalSources
+                }
+                CALL (owner) {
+                  OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(:News)-[:CONTAINS]->(c:Claim)
+                  RETURN count(DISTINCT c) AS totalClaims
+                }
+                CALL (owner) {
+                  OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(:News)-[:CONTAINS]->(:Claim)<-[:CHECKS]-(fc:FactCheck)
+                  RETURN count(DISTINCT fc) AS totalFactChecks
+                }
+                CALL (owner) {
+                  OPTIONAL MATCH (p:Post)-[:SPREADS]->(:News)<-[:OWNS_NEWS]-(owner)
+                  RETURN count(DISTINCT p) AS totalPosts
+                }
+                CALL (owner) {
+                  OPTIONAL MATCH (u:User)-[:CREATED|SHARED]->(:Post)-[:SPREADS]->(:News)<-[:OWNS_NEWS]-(owner)
+                  RETURN count(DISTINCT u) AS totalUsers
+                }
                 RETURN totalNews, highRiskNews, mediumRiskNews, lowRiskNews,
                        totalSources, totalClaims, totalFactChecks, totalPosts, totalUsers
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
             return session.executeRead(tx -> {
-                Record r = tx.run(cypher).single();
+                Record r = tx.run(cypher, Map.of("userId", userId)).single();
                 return new DashboardSummaryDto(
                         r.get("totalNews").asLong(0L),
                         r.get("highRiskNews").asLong(0L),

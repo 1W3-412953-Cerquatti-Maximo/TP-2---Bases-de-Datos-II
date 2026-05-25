@@ -161,6 +161,54 @@ public class AuthRepository {
         }
     }
 
+    /**
+     * Crea o actualiza un usuario por email (idempotente). El passwordHash solo
+     * se establece al crear, para no re-hashear en cada arranque. Devuelve el id.
+     */
+    public String upsertUser(String id, String username, String email, String displayName,
+                             String passwordHash, String role, String themePreference) {
+        final String cypher = """
+                MERGE (u:AppUser {email: $email})
+                ON CREATE SET u.id = $id,
+                              u.username = $username,
+                              u.displayName = $displayName,
+                              u.passwordHash = $passwordHash,
+                              u.role = $role,
+                              u.themePreference = $themePreference,
+                              u.createdAt = datetime()
+                ON MATCH SET  u.username = $username,
+                              u.displayName = $displayName,
+                              u.role = $role
+                RETURN u.id AS id
+                """;
+        Map<String, Object> params = Map.of(
+                "id", id, "username", username, "email", email, "displayName", displayName,
+                "passwordHash", passwordHash, "role", role, "themePreference", themePreference);
+
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeWrite(tx -> tx.run(cypher, params).single().get("id").asString());
+        }
+    }
+
+    /**
+     * Vincula a un usuario todas las noticias que aún no tienen dueño
+     * (relación OWNS_NEWS). Idempotente. Devuelve cuántas se vincularon.
+     */
+    public long linkOwnerlessNewsTo(String userId) {
+        final String cypher = """
+                MATCH (owner:AppUser {id: $userId})
+                MATCH (n:News)
+                WHERE NOT EXISTS { MATCH (:AppUser)-[:OWNS_NEWS]->(n) }
+                MERGE (owner)-[r:OWNS_NEWS]->(n)
+                ON CREATE SET r.origin = 'SEED_DATA', r.createdAt = datetime()
+                RETURN count(n) AS linked
+                """;
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeWrite(tx ->
+                    tx.run(cypher, Map.of("userId", userId)).single().get("linked").asLong());
+        }
+    }
+
     private static CurrentUserDto toCurrentUser(Record r) {
         return new CurrentUserDto(
                 r.get("id").asString(null),

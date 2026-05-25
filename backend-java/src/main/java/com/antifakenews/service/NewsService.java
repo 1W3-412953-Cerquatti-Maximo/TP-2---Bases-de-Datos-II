@@ -17,12 +17,12 @@ public class NewsService {
         this.newsRepository = newsRepository;
     }
 
-    public List<NewsSummaryDto> listAll() {
-        return newsRepository.findAll();
+    public List<NewsSummaryDto> listAll(String userId) {
+        return newsRepository.findAll(userId);
     }
 
-    public NewsDetailDto getById(String id) {
-        return newsRepository.findById(id)
+    public NewsDetailDto getById(String userId, String id) {
+        return newsRepository.findById(userId, id)
                 .orElseThrow(() -> new NotFoundException("News not found: " + id));
     }
 }
