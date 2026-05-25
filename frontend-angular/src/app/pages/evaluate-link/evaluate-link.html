@@ -1,0 +1,181 @@
+<section class="page-header">
+  <h1>Evaluar link</h1>
+  <p class="muted">
+    Pegá una URL pública para obtener un diagnóstico preliminar de credibilidad,
+    un resumen del contenido recuperado y señales que conviene revisar.
+  </p>
+</section>
+
+<section class="card hero">
+  <div class="hero-head">
+    <div>
+      <h3>Diagnóstico on-demand</h3>
+      <p class="muted small">
+        El resultado combina extracción web, reglas de credibilidad y un resumen asistido por IA si está disponible.
+      </p>
+      <p class="quiet-note tiny muted">Consulta ad-hoc. La noticia no se guarda automáticamente.</p>
+    </div>
+    <span class="badge badge-info">URL pública</span>
+  </div>
+
+  <div class="form-field url-field">
+    <label for="evaluate-url">Link de la noticia</label>
+    <input
+      id="evaluate-url"
+      type="url"
+      name="url"
+      [(ngModel)]="url"
+      placeholder="https://sitio.com/articulo"
+      autocomplete="off"
+      spellcheck="false"
+      [disabled]="loading()"
+      (keyup.enter)="submit()" />
+  </div>
+
+  <div class="hero-actions">
+    <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="loading()">
+      {{ loading() ? 'Evaluando…' : 'Buscar y evaluar' }}
+    </button>
+  </div>
+</section>
+
+@if (error()) {
+  <div class="error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <div class="loading">Recuperando el artículo y calculando el diagnóstico…</div>
+}
+
+@if (result(); as result) {
+  <section class="card diagnosis-card">
+    <div class="diagnosis-head">
+      <div>
+        <div class="meta-row">
+          <span class="mono tiny muted">{{ result.resolvedUrl }}</span>
+          <span [class]="fetchStatusClass(result.fetchStatus)">{{ result.fetchStatus }}</span>
+        </div>
+        <h2>{{ result.title }}</h2>
+        <p class="muted small">{{ diagnosis()?.basis }}</p>
+      </div>
+      @if (diagnosis(); as diagnosis) {
+        <span [class]="riskBadgeClass(diagnosis.riskLevel)">{{ diagnosis.riskLevel }}</span>
+      }
+    </div>
+
+    @if (diagnosis(); as diagnosis) {
+      <div class="summary-grid">
+        <div class="analysis-summary" [attr.data-level]="diagnosis.riskLevel">
+          <div class="summary-top">
+            <div class="summary-score">
+              <span class="summary-score-value mono">{{ diagnosis.riskScore }}</span>
+              <span class="summary-score-max muted">/ 100</span>
+            </div>
+            <span [class]="riskBadgeClass(diagnosis.riskLevel)">{{ diagnosis.riskLevel }}</span>
+          </div>
+          <div [class]="scoreBarClass(diagnosis.riskLevel)">
+            <span [style.width.%]="diagnosis.riskScore"></span>
+          </div>
+          <p class="summary-text">{{ diagnosis.summary }}</p>
+        </div>
+
+        <div class="card-tight extraction-card">
+          <h4>Vista previa del contenido</h4>
+          <p>{{ result.contentPreview }}</p>
+          <div class="extraction-links">
+            <a [href]="result.url" target="_blank" rel="noopener">Abrir URL original</a>
+            @if (result.resolvedUrl !== result.url) {
+              <a [href]="result.resolvedUrl" target="_blank" rel="noopener">Abrir URL resuelta</a>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Señales del diagnóstico ({{ diagnosis.signals.length }})</h3>
+        @if (diagnosis.signals.length === 0) {
+          <p class="muted small">No se activaron señales relevantes sobre el texto o la metadata visible del enlace.</p>
+        } @else {
+          <ul class="signals">
+            @for (signal of diagnosis.signals; track signal.code) {
+              <li class="signal">
+                <div class="signal-points">+{{ signal.points }}</div>
+                <div class="signal-body">
+                  <div class="mono signal-code">{{ signal.code }}</div>
+                  <div class="muted small">{{ signal.description }}</div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="grid grid-2 detail-grid">
+    <section class="card ai-section">
+      <div class="section-head">
+        <div>
+          <h3>Resumen asistido</h3>
+          <p class="muted small">Salida complementaria. No reemplaza el diagnóstico principal.</p>
+        </div>
+        @if (aiResult(); as ai) {
+          <span class="badge" [class.badge-info]="ai.enabled">{{ ai.enabled ? ai.provider : 'IA desactivada' }}</span>
+        }
+      </div>
+
+      @if (aiResult(); as ai) {
+        <p>{{ ai.summary }}</p>
+
+        @if (ai.suggestedTopics.length > 0) {
+          <div class="subsection">
+            <h4>Temas sugeridos</h4>
+            <div>
+              @for (topic of ai.suggestedTopics; track topic) {
+                <span class="chip">{{ topic }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        @if (ai.suggestedClaims.length > 0) {
+          <div class="subsection">
+            <h4>Claims sugeridos</h4>
+            <ul class="bullet-list">
+              @for (claim of ai.suggestedClaims; track claim) {
+                <li>{{ claim }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (ai.warnings.length > 0) {
+          <div class="subsection">
+            <h4>Advertencias del resumen</h4>
+            <ul class="bullet-list warnings-list">
+              @for (warning of ai.warnings; track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+      }
+    </section>
+
+    <section class="card warnings-card">
+      <h3>Observaciones de la extracción</h3>
+      @if (result.warnings.length === 0) {
+        <p class="muted small">La extracción recuperó una estructura suficiente para esta evaluación preliminar.</p>
+      } @else {
+        <ul class="bullet-list warnings-list">
+          @for (warning of result.warnings; track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      <p class="tiny muted note-line">
+        Este resultado describe credibilidad preliminar a partir del texto visible y metadata pública del enlace.
+      </p>
+    </section>
+  </section>
+}

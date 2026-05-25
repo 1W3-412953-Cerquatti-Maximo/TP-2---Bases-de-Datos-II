@@ -8,6 +8,7 @@ import { Reports } from './pages/reports/reports';
 import { Login } from './pages/login/login';
 import { Register } from './pages/register/register';
 import { Profile } from './pages/profile/profile';
+import { EvaluateLink } from './pages/evaluate-link/evaluate-link';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -24,6 +25,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: Dashboard, title: 'NexoVeraz · Dashboard' },
       { path: 'news', component: NewsList, title: 'NexoVeraz · Noticias' },
       { path: 'news/:id', component: NewsDetail, title: 'NexoVeraz · Detalle de noticia' },
+      { path: 'evaluate-link', component: EvaluateLink, title: 'NexoVeraz · Evaluar link' },
       { path: 'sources', component: Sources, title: 'NexoVeraz · Fuentes' },
       { path: 'reports', component: Reports, title: 'NexoVeraz · Reportes' },
       { path: 'profile', component: Profile, title: 'NexoVeraz · Mi perfil' },

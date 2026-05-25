@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../api.config';
 import { NewsAnalysis } from '../models/analysis.model';
+import { EvaluateLinkRequest, EvaluateLinkResponse } from '../models/link-evaluation.model';
 import { NewsDetail, NewsSummary } from '../models/news.model';
 
 @Injectable({ providedIn: 'root' })
@@ -20,5 +21,9 @@ export class NewsService {
 
   analyze(id: string): Observable<NewsAnalysis> {
     return this.http.get<NewsAnalysis>(`${API_BASE_URL}/news/${id}/analysis`);
+  }
+
+  evaluateLink(request: EvaluateLinkRequest): Observable<EvaluateLinkResponse> {
+    return this.http.post<EvaluateLinkResponse>(`${API_BASE_URL}/news/evaluate-link`, request);
   }
 }
