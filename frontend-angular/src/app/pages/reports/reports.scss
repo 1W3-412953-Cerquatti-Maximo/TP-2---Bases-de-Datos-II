@@ -1,10 +1,10 @@
 .page-header { margin-bottom: var(--space-6); }
 .page-header code {
-  padding: 2px 6px;
-  background: rgba(56, 189, 248, 0.10);
+  padding: 3px 8px;
+  background: var(--overlay-accent-soft);
   color: var(--color-accent);
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: var(--fs-small);
 }
 
 .report { margin-bottom: var(--space-4); }
@@ -16,11 +16,11 @@
   border-bottom: 1px solid var(--color-border);
 }
 .report-help code {
-  padding: 1px 5px;
-  background: rgba(56, 189, 248, 0.10);
+  padding: 2px 7px;
+  background: var(--overlay-accent-soft);
   color: var(--color-accent);
-  border-radius: 4px;
-  font-size: 11px;
+  border-radius: 8px;
+  font-size: var(--fs-tiny);
 }
 
 .dist {
@@ -31,18 +31,19 @@
 }
 .dist-row {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   align-items: center;
   gap: var(--space-4);
 }
 .dist-label {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 .dist-bar {
   position: relative;
-  height: 12px;
+  height: 16px;
   background: var(--color-border);
   border-radius: 999px;
   overflow: hidden;
@@ -60,8 +61,8 @@
 .cred-cell {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  min-width: 140px;
+  gap: var(--space-2);
+  min-width: 170px;
 }
 
 .top-news {
@@ -80,12 +81,21 @@
 .top-news-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
   margin-bottom: var(--space-2);
 }
 .top-news-title {
   display: block;
   color: var(--color-text);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.45;
 }
 .top-news-title:hover { color: var(--color-accent); text-decoration: none; }
+
+@media (max-width: 720px) {
+  .dist-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}

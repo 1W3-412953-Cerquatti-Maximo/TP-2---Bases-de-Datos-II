@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -9,26 +9,13 @@ import { AiService } from '../../core/services/ai.service';
 import { NewsDetail as NewsDetailModel, RiskLevel } from '../../core/models/news.model';
 import { NewsAnalysis } from '../../core/models/analysis.model';
 import { AiAnalyzeNewsResponse } from '../../core/models/ai.model';
-import { GraphNode, GraphNodeLabel, GraphResponse } from '../../core/models/graph.model';
-
-const GROUP_ORDER: GraphNodeLabel[] = [
-  'News', 'Source', 'Topic', 'Claim', 'Evidence', 'FactCheck', 'Post', 'User'
-];
-
-const GROUP_LABELS: Record<GraphNodeLabel, string> = {
-  News: 'Noticia',
-  Source: 'Fuente',
-  Topic: 'Temas',
-  Claim: 'Claims',
-  Evidence: 'Evidencias',
-  FactCheck: 'Fact Checks',
-  Post: 'Posts',
-  User: 'Usuarios'
-};
+import { GraphNodeLabel, GraphResponse } from '../../core/models/graph.model';
+import { GRAPH_NODE_META, GRAPH_NODE_ORDER } from '../../core/graph/graph-node-meta';
+import { GraphViewer } from '../../components/graph-viewer/graph-viewer';
 
 @Component({
   selector: 'nv-news-detail',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, GraphViewer],
   templateUrl: './news-detail.html',
   styleUrl: './news-detail.scss'
 })
@@ -38,7 +25,8 @@ export class NewsDetail {
   private aiService = inject(AiService);
   private route = inject(ActivatedRoute);
 
-  readonly groupOrder = GROUP_ORDER;
+  readonly groupOrder = GRAPH_NODE_ORDER;
+  readonly groupNodeMeta = GRAPH_NODE_META;
 
   detail = signal<NewsDetailModel | null>(null);
   graph = signal<GraphResponse | null>(null);
@@ -54,20 +42,6 @@ export class NewsDetail {
   aiResult = signal<AiAnalyzeNewsResponse | null>(null);
   aiLoading = signal(false);
   aiError = signal<string | null>(null);
-
-  /** Agrupa nodos del grafo por label para la visualización. */
-  groupedNodes = computed<Record<GraphNodeLabel, GraphNode[]>>(() => {
-    const g = this.graph();
-    const groups: Record<GraphNodeLabel, GraphNode[]> = {
-      News: [], Source: [], Topic: [], Claim: [],
-      Evidence: [], FactCheck: [], Post: [], User: []
-    };
-    if (!g) return groups;
-    for (const n of g.nodes) {
-      groups[n.label].push(n);
-    }
-    return groups;
-  });
 
   constructor() {
     this.route.paramMap.subscribe(params => {
@@ -168,7 +142,11 @@ export class NewsDetail {
   }
 
   groupLabel(label: GraphNodeLabel): string {
-    return GROUP_LABELS[label] ?? label;
+    return this.groupNodeMeta[label].displayName;
+  }
+
+  groupColor(label: GraphNodeLabel): string {
+    return this.groupNodeMeta[label].color;
   }
 
   edgePropEntries(props: Record<string, unknown>): Array<{ key: string; value: string }> {

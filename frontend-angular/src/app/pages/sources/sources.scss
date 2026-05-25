@@ -1,21 +1,22 @@
 .page-header { margin-bottom: var(--space-6); }
 
 .page-header code {
-  padding: 2px 6px;
-  background: rgba(56, 189, 248, 0.10);
+  padding: 3px 8px;
+  background: var(--overlay-accent-soft);
   color: var(--color-accent);
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: var(--fs-small);
 }
 
 .cred-cell {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  min-width: 180px;
+  min-width: 210px;
 }
 .cred-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }

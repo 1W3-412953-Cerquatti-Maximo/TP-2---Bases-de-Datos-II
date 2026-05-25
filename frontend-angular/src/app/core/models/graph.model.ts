@@ -11,7 +11,7 @@ export type GraphNodeLabel =
 export interface GraphNode {
   id: string;
   label: GraphNodeLabel;
-  title: string;
+  title: string | null;
 }
 
 export interface GraphEdge {

@@ -1,0 +1,72 @@
+<section class="graph-viewer">
+  @if (!graph) {
+    <div class="empty">No hay datos del grafo disponibles.</div>
+  } @else if (renderError()) {
+    <div class="empty">{{ renderError() }}</div>
+
+    @if (fallbackGroups.length > 0) {
+      <div class="fallback-groups">
+        @for (group of fallbackGroups; track group.label) {
+          <div class="fallback-group" [style.border-top-color]="group.color">
+            <div class="group-head">
+              <span class="group-label">{{ group.displayName }}</span>
+              <span class="group-count">{{ group.nodes.length }}</span>
+            </div>
+
+            <div class="group-nodes">
+              @for (node of group.nodes; track node.id) {
+                <div class="node-card">
+                  <div class="mono tiny muted">{{ node.id }}</div>
+                  <div class="node-title">{{ node.title ?? 'Sin título' }}</div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  } @else if (graph.nodes.length === 0) {
+    <div class="empty">Esta noticia no tiene relaciones disponibles para visualizar.</div>
+  } @else {
+    <div class="viewer-layout">
+      <div class="card viewer-stage">
+        <p class="muted small viewer-note">
+          Click en un nodo para ver su detalle. Click en el fondo para limpiar la selección.
+        </p>
+        <div #graphHost class="graph-canvas" aria-label="Visualización interactiva del grafo"></div>
+      </div>
+
+      <aside class="card viewer-panel">
+        <h3>Detalle del nodo</h3>
+
+        @if (selectedNode(); as node) {
+          <div class="panel-stack">
+            <span class="node-type-pill" [style.border-color]="node.color">
+              <span class="node-type-dot" [style.background]="node.color"></span>
+              {{ node.label }}
+            </span>
+
+            <div>
+              <div class="panel-label">ID</div>
+              <div class="mono small panel-value">{{ node.id }}</div>
+            </div>
+
+            <div>
+              <div class="panel-label">Título</div>
+              <p class="panel-title">{{ node.title }}</p>
+            </div>
+
+            <div>
+              <div class="panel-label">Conexiones directas</div>
+              <div class="mono panel-value">{{ node.connections }}</div>
+            </div>
+          </div>
+        } @else {
+          <p class="muted small panel-empty">
+            Seleccioná un nodo para inspeccionar su identificador, tipo y título completo.
+          </p>
+        }
+      </aside>
+    </div>
+  }
+</section>

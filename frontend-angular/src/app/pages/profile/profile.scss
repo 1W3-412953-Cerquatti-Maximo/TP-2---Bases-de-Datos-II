@@ -15,10 +15,11 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-4);
+  min-height: 176px;
+  padding: var(--space-5);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 18px;
   color: var(--color-muted);
   font-weight: 600;
   transition: border-color 0.15s ease, color 0.15s ease;
@@ -27,13 +28,19 @@
 .theme-option.active {
   border-color: var(--color-primary);
   color: var(--color-text);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .theme-swatch {
   width: 100%;
-  height: 40px;
-  border-radius: 6px;
+  height: 64px;
+  border-radius: 14px;
   border: 1px solid var(--color-border);
 }
 .swatch-dark  { background: linear-gradient(135deg, #07111F, #1E293B); }
 .swatch-light { background: linear-gradient(135deg, #F1F5F9, #FFFFFF); }
+
+@media (max-width: 640px) {
+  .theme-options {
+    flex-direction: column;
+  }
+}

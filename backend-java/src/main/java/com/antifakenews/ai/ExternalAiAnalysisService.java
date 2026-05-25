@@ -10,7 +10,8 @@ import java.util.List;
  *
  * No depende de ninguna API real ni obliga a tener credenciales. Si faltan
  * credenciales, falla de forma CONTROLADA (enabled=false) en lugar de romper.
- * La llamada real se implementará en una fase futura sin tocar el resto del sistema.
+ * La llamada real se implementará en una fase futura sin tocar el resto del
+ * sistema.
  */
 public class ExternalAiAnalysisService implements AiAnalysisPort {
 
@@ -31,8 +32,7 @@ public class ExternalAiAnalysisService implements AiAnalysisPort {
                     "Proveedor externo seleccionado pero sin credenciales configuradas. IA desactivada de forma controlada.",
                     List.of(),
                     List.of(),
-                    List.of("Configurá AI_EXTERNAL_API_KEY (y AI_EXTERNAL_ENDPOINT) para habilitar el proveedor externo.")
-            );
+                    List.of("Configurá AI_EXTERNAL_API_KEY (y AI_EXTERNAL_ENDPOINT) para habilitar el proveedor externo."));
         }
 
         // Punto de extensión: acá iría la llamada HTTP real al proveedor externo
@@ -44,7 +44,6 @@ public class ExternalAiAnalysisService implements AiAnalysisPort {
                 "Integración con proveedor externo aún no implementada. La estructura está lista para conectarse en una fase futura.",
                 List.of(),
                 List.of(),
-                List.of("La conexión real con el proveedor externo se implementará más adelante; el análisis determinístico del grafo no se ve afectado.")
-        );
+                List.of("La conexión real con el proveedor externo se implementará más adelante; el análisis determinístico del grafo no se ve afectado."));
     }
 }

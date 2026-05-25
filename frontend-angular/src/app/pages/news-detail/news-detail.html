@@ -329,37 +329,18 @@
       </div>
       <p class="muted small graph-note">
         Reflejo de cómo Neo4j conecta esta noticia con el resto de las entidades.
-        Cada grupo es un tipo de nodo del grafo.
+        Cada color representa un tipo de nodo del grafo.
       </p>
 
       <div class="graph-legend">
         @for (label of groupOrder; track label) {
-          <span class="legend-item" [attr.data-label]="label">
-            <span class="legend-dot"></span>{{ groupLabel(label) }}
+          <span class="legend-item">
+            <span class="legend-dot" [style.background]="groupColor(label)"></span>{{ groupLabel(label) }}
           </span>
         }
       </div>
 
-      <div class="graph-groups">
-        @for (label of groupOrder; track label) {
-          @if (groupedNodes()[label].length > 0) {
-            <div class="graph-group" [attr.data-label]="label">
-              <div class="group-head">
-                <span class="group-label">{{ groupLabel(label) }}</span>
-                <span class="group-count">{{ groupedNodes()[label].length }}</span>
-              </div>
-              <div class="group-nodes">
-                @for (n of groupedNodes()[label]; track n.id) {
-                  <div class="node-card">
-                    <div class="mono tiny muted">{{ n.id }}</div>
-                    <div class="node-title">{{ n.title }}</div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        }
-      </div>
+      <nv-graph-viewer [graph]="g"></nv-graph-viewer>
 
       <div class="card edges-card">
         <h3>Aristas ({{ g.edges.length }})</h3>
