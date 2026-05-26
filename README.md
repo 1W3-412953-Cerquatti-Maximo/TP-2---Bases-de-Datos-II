@@ -240,7 +240,11 @@ CORS habilitado para `http://localhost:4200` (Angular en próxima fase).
 | GET    | `/api/sources`                | Lista de fuentes con `credibilityScore`                   |
 | GET    | `/api/topics`                 | Lista de temas                                            |
 | GET    | `/api/graph/news/{id}`        | Grafo `{nodes, edges}` con propiedades de relaciones      |
-| GET    | `/api/dashboard/summary`      | Conteos agregados (totales + riskLevel)                   |
+| GET    | `/api/dashboard/summary`      | Conteos agregados (totales + riskLevel + credibilidad)    |
+| GET    | `/api/dashboard/topic-risk-ranking` | Top 5 temas por riesgo promedio                     |
+| GET    | `/api/dashboard/risk-signals` | Top señales de riesgo más frecuentes (count por código)   |
+| GET    | `/api/dashboard/news-timeline`| Noticias por día y nivel de riesgo (últimos 14 días)      |
+| GET    | `/api/dashboard/graph-summary`| Resumen del subgrafo: conteo por tipo de nodo + relaciones|
 
 Errores: `404` cuando la noticia no existe, con cuerpo JSON `{status, error, message, timestamp}`.
 
@@ -687,6 +691,23 @@ Los identificadores internos (`news-003`, `src-002`, UUIDs) ya **no se muestran*
 
 ---
 
+## Dashboard analítico (Fase 8.3)
+
+El Dashboard pasó de tarjetas de números a un panel analítico. Se quitó el bloque "Acceso rápido — noticias de alto riesgo". Todos los datos se filtran por usuario (`OWNS_NEWS`) y los endpoints nuevos requieren `Authorization: Bearer <token>`.
+
+| Visualización | Endpoint | Cómo se calcula |
+|---------------|----------|-----------------|
+| **Distribución de riesgo** (dona) | `/api/dashboard/summary` | Conteo de noticias del usuario por `riskLevel`. |
+| **Confiabilidad de fuentes** (dona) | `/api/dashboard/summary` | Fuentes del usuario por tramo de `credibilityScore` (alta ≥0.7 · media 0.4–0.7 · baja <0.4). |
+| **Top temas con mayor riesgo promedio** (barras) | `/api/dashboard/topic-risk-ranking` | `avg(News.riskScore)` por `Topic` sobre `(:AppUser)-[:OWNS_NEWS]->(:News)-[:ABOUT]->(:Topic)`, orden desc, top 5. Color por promedio (verde/amarillo/rojo). |
+| **Señales de riesgo más frecuentes** (barras) | `/api/dashboard/risk-signals` | Por cada noticia del usuario evalúa las mismas reglas que `NewsAnalysisService` (fuente baja, fact-check FALSE/MISLEADING, claim refutado, claim sin evidencia, alta propagación, usuarios conectados, post de alto alcance) y cuenta en cuántas aparece cada una. Top 5 con count>0. |
+| **Evolución temporal por riesgo** (barras apiladas) | `/api/dashboard/news-timeline` | Agrupa por día (`coalesce(createdAt, publishedAt)`) separando LOW/MEDIUM/HIGH; últimos 14 días con datos, orden ascendente. |
+| **Resumen del grafo** (mini grafo SVG) | `/api/dashboard/graph-summary` | Conteo por tipo de nodo del subgrafo del usuario (News, Source, Topic, Claim, Evidence, FactCheck, Post, User) + total de relaciones internas entre esos nodos. |
+
+Todas tienen estado vacío propio (p. ej. "Todavía no hay temas suficientes para analizar."). Las visualizaciones extra cargan de forma independiente: si un endpoint falla, el resto del Dashboard sigue funcionando. Implementadas con **CSS/SVG simple**, sin librerías de charts.
+
+---
+
 ## Guion de demo
 
 Flujo recomendado para presentar el TP (~5 minutos).
@@ -761,3 +782,4 @@ Abrir **http://localhost:4200**.
 - [x] **Fase 7.3** — Flujo protegido por login: endpoints protegidos por token, datos filtrados por `OWNS_NEWS`, cuenta demo con seed, cuenta nueva vacía, redirección a `/login` sin sesión.
 - [x] **Fase 8** — Evaluar link + alta de noticia por URL (`/api/news/submit-url`), dashboard con donas, scroll interno y acordeones en el detalle.
 - [x] **Fase 8.2** — Borrado de noticias (`DELETE /api/news/{id}`) con limpieza de fuente huérfana, persistencia del `riskScore` evaluado al guardar, asociación automática de temas y ocultamiento de IDs técnicos en la UI.
+- [x] **Fase 8.3** — Dashboard analítico: top temas por riesgo, señales de riesgo más frecuentes, evolución temporal por riesgo y mini grafo del subgrafo (endpoints `topic-risk-ranking`, `risk-signals`, `news-timeline`, `graph-summary`); se quitó el acceso rápido a alto riesgo.

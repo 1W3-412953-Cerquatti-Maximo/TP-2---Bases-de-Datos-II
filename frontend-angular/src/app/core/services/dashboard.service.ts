@@ -3,7 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../api.config';
-import { DashboardSummary } from '../models/dashboard.model';
+import {
+  DashboardSummary,
+  GraphSummaryResponse,
+  NewsTimelineItem,
+  RiskSignalSummaryItem,
+  TopicRiskRankingItem
+} from '../models/dashboard.model';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -11,5 +17,21 @@ export class DashboardService {
 
   getSummary(): Observable<DashboardSummary> {
     return this.http.get<DashboardSummary>(`${API_BASE_URL}/dashboard/summary`);
+  }
+
+  getTopicRiskRanking(): Observable<TopicRiskRankingItem[]> {
+    return this.http.get<TopicRiskRankingItem[]>(`${API_BASE_URL}/dashboard/topic-risk-ranking`);
+  }
+
+  getRiskSignals(): Observable<RiskSignalSummaryItem[]> {
+    return this.http.get<RiskSignalSummaryItem[]>(`${API_BASE_URL}/dashboard/risk-signals`);
+  }
+
+  getNewsTimeline(): Observable<NewsTimelineItem[]> {
+    return this.http.get<NewsTimelineItem[]>(`${API_BASE_URL}/dashboard/news-timeline`);
+  }
+
+  getGraphSummary(): Observable<GraphSummaryResponse> {
+    return this.http.get<GraphSummaryResponse>(`${API_BASE_URL}/dashboard/graph-summary`);
   }
 }

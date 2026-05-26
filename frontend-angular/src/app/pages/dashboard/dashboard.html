@@ -53,27 +53,115 @@
     </div>
   </section>
 
-  @if (highRiskShortcuts().length > 0) {
-    <section class="card high-risk">
-      <div class="hr-head">
-        <div>
-          <h3>Acceso rápido — Noticias de alto riesgo</h3>
-          <p class="muted small">Cola de revisión prioritaria.</p>
-        </div>
-        <a routerLink="/news" class="btn btn-ghost">Ver todas</a>
-      </div>
-      <ul class="hr-list">
-        @for (n of highRiskShortcuts(); track n.id) {
-          <li>
-            <a [routerLink]="['/news', n.id]" class="hr-item">
-              <span class="badge badge-high">HIGH</span>
-              <span class="hr-score mono">{{ n.riskScore }}</span>
-              <span class="hr-title">{{ n.title }}</span>
-              <span class="hr-source muted small">{{ n.sourceName ?? '—' }}</span>
-            </a>
-          </li>
+  <!-- Fila 2: Top temas con mayor riesgo + Señales de riesgo más frecuentes -->
+  <section class="grid grid-2 analytics-row">
+    <div class="card analytics-card">
+      <h3>Top temas con mayor riesgo promedio</h3>
+      @if (topicRanking().length === 0) {
+        <p class="card-empty muted">Todavía no hay temas suficientes para analizar.</p>
+      } @else {
+        <ul class="hbar-list">
+          @for (t of topicRanking(); track t.topic) {
+            <li class="hbar-row">
+              <div class="hbar-head">
+                <span class="hbar-name">{{ t.topic }}</span>
+                <span class="hbar-meta">
+                  <strong [style.color]="topicBarColor(t.avgRiskScore)">{{ t.avgRiskScore }}</strong>
+                  · {{ t.newsCount }} {{ t.newsCount === 1 ? 'noticia' : 'noticias' }}
+                </span>
+              </div>
+              <div class="hbar-track">
+                <div class="hbar-fill"
+                     [style.width.%]="t.avgRiskScore"
+                     [style.background]="topicBarColor(t.avgRiskScore)"></div>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="card analytics-card">
+      <h3>Señales de riesgo más frecuentes</h3>
+      @if (riskSignals().length === 0) {
+        <p class="card-empty muted">No hay señales de riesgo suficientes para mostrar.</p>
+      } @else {
+        <ul class="hbar-list">
+          @for (s of riskSignals(); track s.code) {
+            <li class="hbar-row">
+              <div class="hbar-head">
+                <span class="hbar-name">{{ s.label }}</span>
+                <span class="hbar-meta"><strong>{{ s.count }}</strong></span>
+              </div>
+              <div class="hbar-track">
+                <div class="hbar-fill signal-fill"
+                     [style.width.%]="maxSignalCount() ? (s.count / maxSignalCount()) * 100 : 0"></div>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+
+  <!-- Fila 3: Evolución temporal de noticias por riesgo -->
+  <section class="card timeline-card">
+    <h3>Evolución temporal de noticias por riesgo</h3>
+    @if (timelineBars().length === 0) {
+      <p class="card-empty muted">Todavía no hay evolución temporal para mostrar.</p>
+    } @else {
+      <div class="timeline-chart">
+        @for (b of timelineBars(); track b.label) {
+          <div class="tl-col">
+            <div class="tl-stack" [attr.title]="b.label + ': ' + b.total + ' (B' + b.low + ' M' + b.medium + ' A' + b.high + ')'">
+              @if (b.highPct > 0) { <div class="tl-seg seg-high" [style.height.%]="b.highPct"></div> }
+              @if (b.mediumPct > 0) { <div class="tl-seg seg-medium" [style.height.%]="b.mediumPct"></div> }
+              @if (b.lowPct > 0) { <div class="tl-seg seg-low" [style.height.%]="b.lowPct"></div> }
+            </div>
+            <div class="tl-label">{{ b.label }}</div>
+          </div>
         }
-      </ul>
-    </section>
-  }
+      </div>
+      <div class="timeline-legend">
+        <span class="tl-lg"><span class="tl-dot seg-low"></span> Bajo</span>
+        <span class="tl-lg"><span class="tl-dot seg-medium"></span> Medio</span>
+        <span class="tl-lg"><span class="tl-dot seg-high"></span> Alto</span>
+      </div>
+    }
+  </section>
+
+  <!-- Fila 4: Mini grafo / resumen de relaciones -->
+  <section class="card graph-card">
+    <div class="graph-card-head">
+      <h3>Resumen del grafo</h3>
+      @if (graph(); as g) {
+        <span class="graph-rels muted small">{{ g.totalRelationships }} relaciones</span>
+      }
+    </div>
+    @if (!graphHasData()) {
+      <p class="card-empty muted">Todavía no hay grafo para mostrar.</p>
+    } @else {
+      <div class="graph-mini">
+        <svg [attr.viewBox]="'0 0 ' + graphView.w + ' ' + graphView.h" class="graph-svg" role="img" aria-label="Resumen del subgrafo del usuario">
+          @if (graphCenter(); as c) {
+            @for (o of graphOuter(); track o.type) {
+              <line class="graph-edge" [attr.x1]="c.x" [attr.y1]="c.y" [attr.x2]="o.x" [attr.y2]="o.y" />
+            }
+            @for (o of graphOuter(); track o.type) {
+              <g>
+                <circle class="gn-circle" [attr.cx]="o.x" [attr.cy]="o.y" r="26" [style.fill]="o.color" />
+                <text class="gn-count" [attr.x]="o.x" [attr.y]="o.y">{{ o.count }}</text>
+                <text class="gn-label" [attr.x]="o.x" [attr.y]="o.y + 42">{{ o.label }}</text>
+              </g>
+            }
+            <g>
+              <circle class="gn-circle" [attr.cx]="c.x" [attr.cy]="c.y" r="36" [style.fill]="c.color" />
+              <text class="gn-count center" [attr.x]="c.x" [attr.y]="c.y - 4">{{ c.count }}</text>
+              <text class="gn-center-label" [attr.x]="c.x" [attr.y]="c.y + 14">{{ c.label }}</text>
+            </g>
+          }
+        </svg>
+      </div>
+    }
+  </section>
 }
