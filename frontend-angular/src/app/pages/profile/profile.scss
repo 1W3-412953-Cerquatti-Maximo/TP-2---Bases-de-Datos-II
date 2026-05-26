@@ -4,6 +4,54 @@
 .kv { margin-bottom: var(--space-5); }
 .logout-btn { margin-top: var(--space-2); }
 
+/* Botón "Cerrar sesión": borde y texto rojo, fondo transparente; al hover,
+   fondo rojo con letras oscuras. */
+.btn-logout {
+  background: transparent;
+  color: var(--color-high);
+  border: 1px solid var(--color-high);
+}
+.btn-logout:hover {
+  background: var(--color-high);
+  color: #1A0606;
+  border-color: var(--color-high);
+}
+
+/* Modal de confirmación de cierre de sesión. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(2, 8, 23, 0.62);
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-6);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.modal-card h3 { margin-top: 0; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  flex-wrap: wrap;
+}
+.btn-logout-solid {
+  background: var(--color-high);
+  color: #1A0606;
+}
+.btn-logout-solid:hover { opacity: 0.94; transform: translateY(-1px); }
+
 .theme-options {
   display: flex;
   gap: var(--space-3);

@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../api.config';
 import { NewsAnalysis } from '../models/analysis.model';
 import { EvaluateLinkRequest, EvaluateLinkResponse } from '../models/link-evaluation.model';
 import { NewsDetail, NewsSummary } from '../models/news.model';
+import { DeleteNewsResponse, SubmitNewsUrlRequest, SubmitNewsUrlResponse } from '../models/submit-news.model';
 
 @Injectable({ providedIn: 'root' })
 export class NewsService {
@@ -25,5 +26,13 @@ export class NewsService {
 
   evaluateLink(request: EvaluateLinkRequest): Observable<EvaluateLinkResponse> {
     return this.http.post<EvaluateLinkResponse>(`${API_BASE_URL}/news/evaluate-link`, request);
+  }
+
+  submitNewsUrl(request: SubmitNewsUrlRequest): Observable<SubmitNewsUrlResponse> {
+    return this.http.post<SubmitNewsUrlResponse>(`${API_BASE_URL}/news/submit-url`, request);
+  }
+
+  delete(id: string): Observable<DeleteNewsResponse> {
+    return this.http.delete<DeleteNewsResponse>(`${API_BASE_URL}/news/${id}`);
   }
 }

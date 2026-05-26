@@ -11,8 +11,8 @@
   <!-- Encabezado -->
   <section class="card hero">
     <div class="hero-meta">
-      <span class="mono tiny muted">{{ d.id }}</span>
       <span [class]="riskBadgeClass(d.riskLevel)">{{ d.riskLevel ?? 'N/A' }}</span>
+      <button type="button" class="btn-delete" (click)="requestDelete()">Eliminar noticia</button>
     </div>
     <h1>{{ d.title }}</h1>
     <p class="muted">{{ d.content }}</p>
@@ -148,7 +148,7 @@
       } @else {
         <div class="ai-body">
           <div class="ai-provider tiny muted">
-            proveedor: <span class="mono">{{ ai.provider }}</span>
+            proveedor: <span class="mono">IA</span>
           </div>
 
           <div class="ai-block">
@@ -193,128 +193,140 @@
     }
   </section>
 
-  <!-- Datos asociados -->
-  <div class="grid grid-2 detail-grid">
+  <!-- Datos asociados (acordeones colapsables) -->
+  <div class="accordions">
 
-    @if (d.source; as s) {
-      <section class="card">
-        <h3>Fuente</h3>
-        <dl class="kv">
-          <dt>Nombre</dt><dd>{{ s.name }}</dd>
-          <dt>Tipo</dt><dd><span class="chip">{{ s.type }}</span></dd>
-          <dt>Credibilidad</dt><dd class="mono">{{ s.credibilityScore ?? '—' }}</dd>
-          <dt>URL</dt><dd><a [href]="s.url" target="_blank" rel="noopener" class="small">{{ s.url }}</a></dd>
-        </dl>
-      </section>
-    }
-
-    <section class="card">
-      <h3>Temas ({{ d.topics.length }})</h3>
-      @if (d.topics.length === 0) {
-        <p class="muted small">Sin temas asociados.</p>
-      } @else {
-        @for (t of d.topics; track t.id) {
-          <span class="chip">{{ t.name }}</span>
+    <details class="card accordion" open>
+      <summary>
+        <span class="acc-title">Fuente</span>
+        <span class="acc-count">{{ d.source ? 1 : 0 }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.source; as s) {
+          <dl class="kv">
+            <dt>Nombre</dt><dd>{{ s.name }}</dd>
+            <dt>Tipo</dt><dd><span class="chip">{{ s.type }}</span></dd>
+            <dt>Credibilidad</dt><dd class="mono">{{ s.credibilityScore ?? '—' }}</dd>
+            <dt>URL</dt><dd><a [href]="s.url" target="_blank" rel="noopener" class="small">{{ s.url }}</a></dd>
+          </dl>
+        } @else {
+          <p class="muted small">Sin datos disponibles.</p>
         }
-      }
-    </section>
+      </div>
+    </details>
 
-    <section class="card">
-      <h3>Claims ({{ d.claims.length }})</h3>
-      @if (d.claims.length === 0) {
-        <p class="muted small">Sin claims extraídos.</p>
-      } @else {
-        <ul class="entity-list">
-          @for (c of d.claims; track c.id) {
-            <li>
-              <div class="entity-head">
-                <span class="mono tiny muted">{{ c.id }}</span>
-                <span class="badge">{{ c.status }}</span>
-              </div>
-              <div>{{ c.text }}</div>
-            </li>
+    <details class="card accordion">
+      <summary>
+        <span class="acc-title">Temas</span>
+        <span class="acc-count">{{ d.topics.length }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.topics.length === 0) {
+          <p class="muted small">Sin datos disponibles.</p>
+        } @else {
+          @for (t of d.topics; track t.id) {
+            <span class="chip">{{ t.name }}</span>
           }
-        </ul>
-      }
-    </section>
+        }
+      </div>
+    </details>
 
-    <section class="card">
-      <h3>Evidencias ({{ d.evidence.length }})</h3>
-      @if (d.evidence.length === 0) {
-        <p class="muted small">Sin evidencias asociadas.</p>
-      } @else {
-        <ul class="entity-list">
-          @for (e of d.evidence; track e.id) {
-            <li>
-              <div class="entity-head">
-                <span class="mono tiny muted">{{ e.id }}</span>
-                <span class="chip">{{ e.type }}</span>
-              </div>
-              <div>{{ e.description }}</div>
-              @if (e.url) {
-                <a [href]="e.url" target="_blank" rel="noopener" class="small mono">{{ e.url }}</a>
-              }
-            </li>
-          }
-        </ul>
-      }
-    </section>
+    <details class="card accordion" open>
+      <summary>
+        <span class="acc-title">Claims</span>
+        <span class="acc-count">{{ d.claims.length }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.claims.length === 0) {
+          <p class="muted small">Sin datos disponibles.</p>
+        } @else {
+          <ul class="entity-list">
+            @for (c of d.claims; track c.id) {
+              <li>
+                <div class="entity-head">
+                  <span class="badge">{{ c.status }}</span>
+                </div>
+                <div>{{ c.text }}</div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </details>
 
-    <section class="card">
-      <h3>Fact Checks ({{ d.factChecks.length }})</h3>
-      @if (d.factChecks.length === 0) {
-        <p class="muted small">Sin fact checks asociados.</p>
-      } @else {
-        <ul class="entity-list">
-          @for (f of d.factChecks; track f.id) {
-            <li>
-              <div class="entity-head">
-                <span class="mono tiny muted">{{ f.id }}</span>
-                <span class="badge badge-info">{{ f.verdict }}</span>
-                <span class="muted tiny">confidence {{ f.confidence ?? '—' }}</span>
-              </div>
-              <div>{{ f.explanation }}</div>
-            </li>
-          }
-        </ul>
-      }
-    </section>
+    <details class="card accordion">
+      <summary>
+        <span class="acc-title">Evidencias</span>
+        <span class="acc-count">{{ d.evidence.length }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.evidence.length === 0) {
+          <p class="muted small">Sin datos disponibles.</p>
+        } @else {
+          <ul class="entity-list">
+            @for (e of d.evidence; track e.id) {
+              <li>
+                <div class="entity-head">
+                  <span class="chip">{{ e.type }}</span>
+                </div>
+                <div>{{ e.description }}</div>
+                @if (e.url) {
+                  <a [href]="e.url" target="_blank" rel="noopener" class="small mono">{{ e.url }}</a>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </details>
 
-    <section class="card">
-      <h3>Posts ({{ d.posts.length }})</h3>
-      @if (d.posts.length === 0) {
-        <p class="muted small">Ningún post difundió esta noticia.</p>
-      } @else {
-        <ul class="entity-list">
-          @for (p of d.posts; track p.id) {
-            <li>
-              <div class="entity-head">
-                <span class="mono tiny muted">{{ p.id }}</span>
-                <span class="chip">{{ p.platform }}</span>
-                <span class="muted tiny">{{ p.createdAt ? (p.createdAt | date:'short') : '—' }}</span>
-              </div>
-              <div>{{ p.content }}</div>
-            </li>
-          }
-        </ul>
-      }
-    </section>
+    <details class="card accordion">
+      <summary>
+        <span class="acc-title">Fact Checks</span>
+        <span class="acc-count">{{ d.factChecks.length }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.factChecks.length === 0) {
+          <p class="muted small">Sin datos disponibles.</p>
+        } @else {
+          <ul class="entity-list">
+            @for (f of d.factChecks; track f.id) {
+              <li>
+                <div class="entity-head">
+                  <span class="badge badge-info">{{ f.verdict }}</span>
+                  <span class="muted tiny">confidence {{ f.confidence ?? '—' }}</span>
+                </div>
+                <div>{{ f.explanation }}</div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </details>
 
-    <section class="card">
-      <h3>Usuarios ({{ d.users.length }})</h3>
-      @if (d.users.length === 0) {
-        <p class="muted small">Ningún usuario difundió esta noticia.</p>
-      } @else {
-        <ul class="user-list">
-          @for (u of d.users; track u.id) {
-            <li>
-              <span class="user-name mono">{{ '@' + u.username }}</span>
-              <span class="chip">{{ u.role }}</span>
-            </li>
-          }
-        </ul>
-      }
-    </section>
+    <details class="card accordion">
+      <summary>
+        <span class="acc-title">Posts</span>
+        <span class="acc-count">{{ d.posts.length }}</span>
+      </summary>
+      <div class="acc-body">
+        @if (d.posts.length === 0) {
+          <p class="muted small">Sin datos disponibles.</p>
+        } @else {
+          <ul class="entity-list">
+            @for (p of d.posts; track p.id) {
+              <li>
+                <div class="entity-head">
+                  <span class="chip">{{ p.platform }}</span>
+                  <span class="muted tiny">{{ p.createdAt ? (p.createdAt | date:'short') : '—' }}</span>
+                </div>
+                <div>{{ p.content }}</div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </details>
   </div>
 
   <!-- Grafo de relaciones -->
@@ -341,39 +353,27 @@
       </div>
 
       <nv-graph-viewer [graph]="g"></nv-graph-viewer>
-
-      <div class="card edges-card">
-        <h3>Aristas ({{ g.edges.length }})</h3>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Desde</th>
-                <th>Tipo</th>
-                <th>Hacia</th>
-                <th>Propiedades</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of g.edges; track $index) {
-                <tr>
-                  <td class="mono small">{{ e.from }}</td>
-                  <td><span class="chip">{{ e.type }}</span></td>
-                  <td class="mono small">{{ e.to }}</td>
-                  <td>
-                    @for (entry of edgePropEntries(e.properties); track entry.key) {
-                      <div class="tiny">
-                        <span class="mono muted">{{ entry.key }}</span>:
-                        <span>{{ entry.value }}</span>
-                      </div>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
     </section>
   }
+}
+
+@if (showDeleteConfirm() && detail(); as d) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="delete-news-title">
+      <h3 id="delete-news-title">Eliminar noticia</h3>
+      <p class="muted">¿Estás seguro de que querés eliminar esta noticia?</p>
+      <p class="delete-target">{{ d.title }}</p>
+
+      @if (deleteError()) {
+        <div class="error">{{ deleteError() }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelDelete()" [disabled]="deleting()">Cancelar</button>
+        <button type="button" class="btn btn-delete-solid" (click)="confirmDelete()" [disabled]="deleting()">
+          {{ deleting() ? 'Eliminando…' : 'Eliminar' }}
+        </button>
+      </div>
+    </div>
+  </div>
 }

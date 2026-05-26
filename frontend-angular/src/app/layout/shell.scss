@@ -74,6 +74,27 @@ nav .icon {
   opacity: 0.85;
 }
 
+/* Acción principal del menú: "Evaluar link" resaltado en turquesa flúor,
+   en línea con el botón "Buscar y evaluar". */
+nav a.nav-primary {
+  background: var(--color-primary);
+  color: #042F2E;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.22);
+}
+nav a.nav-primary:hover {
+  background: var(--color-primary);
+  color: #042F2E;
+  opacity: 0.94;
+  transform: translateX(2px);
+}
+nav a.nav-primary .icon { opacity: 1; }
+nav a.nav-primary.active {
+  background: var(--color-primary);
+  color: #042F2E;
+  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.28), inset 3px 0 0 #042F2E;
+}
+
 .tag {
   margin-top: auto;
   display: flex;

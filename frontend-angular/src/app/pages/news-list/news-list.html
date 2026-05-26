@@ -3,6 +3,10 @@
   <p class="muted">Listado completo de noticias indexadas. Click en una fila para abrir el detalle y el grafo.</p>
 </section>
 
+@if (successMessage()) {
+  <div class="success-banner">{{ successMessage() }}</div>
+}
+
 @if (loading()) {
   <div class="loading">Cargando noticias…</div>
 } @else if (error()) {
@@ -10,44 +14,147 @@
 } @else if (news().length === 0) {
   <div class="empty">Todavía no tenés noticias cargadas.</div>
 } @else {
-  <div class="card card-tight table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Título</th>
-          <th>Fuente</th>
-          <th>Temas</th>
-          <th class="num">Score</th>
-          <th>Nivel</th>
-          <th>Publicada</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (n of news(); track n.id) {
-          <tr class="clickable" (click)="goTo(n.id)">
-            <td>
-              <a [routerLink]="['/news', n.id]" class="title">{{ n.title }}</a>
-              <div class="mono tiny muted">{{ n.id }}</div>
-            </td>
-            <td>{{ n.sourceName ?? '—' }}</td>
-            <td>
-              @for (t of n.topicNames; track t) {
-                <span class="chip">{{ t }}</span>
-              }
-            </td>
-            <td class="num">
-              <div class="score-cell">
-                <div class="mono">{{ n.riskScore ?? '—' }}</div>
-                <div [class]="scoreBarClass(n.riskLevel)">
-                  <span [style.width.%]="n.riskScore ?? 0"></span>
-                </div>
-              </div>
-            </td>
-            <td><span [class]="riskBadgeClass(n.riskLevel)">{{ n.riskLevel ?? 'N/A' }}</span></td>
-            <td class="muted small">{{ n.publishedAt ? (n.publishedAt | date:'short') : '—' }}</td>
-          </tr>
+
+  <section class="card filters-card">
+    <div class="filters-head">
+      <h3>Buscar y filtrar noticias</h3>
+      <p class="muted small">Encontrá noticias por título, fuente, tema, riesgo u ordenamiento.</p>
+    </div>
+
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+        <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <input
+        id="news-search"
+        type="search"
+        class="search-input"
+        placeholder="Buscar noticias por título..."
+        autocomplete="off"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)" />
+    </div>
+
+    <div class="filters-grid">
+      <div class="filter-field">
+        <span class="filter-label">Fuente</span>
+        <nv-select
+          [options]="sourceOptions()"
+          [value]="selectedSource()"
+          placeholder="Todas las fuentes"
+          ariaLabel="Filtrar por fuente"
+          (valueChange)="selectedSource.set($event)" />
+      </div>
+
+      <div class="filter-field">
+        <span class="filter-label">Tema</span>
+        <nv-select
+          [options]="topicOptions()"
+          [value]="selectedTopic()"
+          placeholder="Todos los temas"
+          ariaLabel="Filtrar por tema"
+          (valueChange)="selectedTopic.set($event)" />
+      </div>
+
+      <div class="filter-field">
+        <span class="filter-label">Ordenar por</span>
+        <nv-select
+          [options]="sortOptions"
+          [value]="selectedSort()"
+          placeholder="Ordenar por"
+          ariaLabel="Ordenar noticias"
+          (valueChange)="setSort($event)" />
+      </div>
+    </div>
+
+    <div class="filters-foot">
+      <div class="risk-pills">
+        <span class="filter-label">Riesgo</span>
+        <button type="button" class="pill" [class.active]="selectedRiskLevel() === ''" (click)="setRisk('')">Todos</button>
+        <button type="button" class="pill pill-low" [class.active]="selectedRiskLevel() === 'LOW'" (click)="setRisk('LOW')">Bajo</button>
+        <button type="button" class="pill pill-medium" [class.active]="selectedRiskLevel() === 'MEDIUM'" (click)="setRisk('MEDIUM')">Medio</button>
+        <button type="button" class="pill pill-high" [class.active]="selectedRiskLevel() === 'HIGH'" (click)="setRisk('HIGH')">Alto</button>
+      </div>
+
+      <div class="foot-right">
+        <span class="results-count">Mostrando {{ filteredNews().length }} de {{ totalNews() }} noticias</span>
+        @if (hasActiveFilters()) {
+          <span class="active-pill">Filtros activos</span>
         }
-      </tbody>
-    </table>
+        <button type="button" class="btn btn-ghost clear-btn" (click)="clearFilters()" [disabled]="!hasActiveFilters()">
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (filteredNews().length === 0) {
+    <div class="empty">No se encontraron noticias con los filtros aplicados.</div>
+  } @else {
+    <div class="card card-tight table-wrapper news-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Fuente</th>
+            <th>Temas</th>
+            <th class="num">Score</th>
+            <th>Nivel</th>
+            <th>Publicada</th>
+            <th class="actions-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (n of filteredNews(); track n.id) {
+            <tr class="clickable" (click)="goTo(n.id)">
+              <td>
+                <a [routerLink]="['/news', n.id]" class="title">{{ n.title }}</a>
+              </td>
+              <td>{{ n.sourceName ?? '—' }}</td>
+              <td>
+                @for (t of n.topicNames; track t) {
+                  <span class="chip">{{ t }}</span>
+                }
+              </td>
+              <td class="num">
+                <div class="score-cell">
+                  <div class="mono">{{ n.riskScore ?? '—' }}</div>
+                  <div [class]="scoreBarClass(n.riskLevel)">
+                    <span [style.width.%]="n.riskScore ?? 0"></span>
+                  </div>
+                </div>
+              </td>
+              <td><span [class]="riskBadgeClass(n.riskLevel)">{{ n.riskLevel ?? 'N/A' }}</span></td>
+              <td class="muted small">{{ n.publishedAt ? (n.publishedAt | date:'short') : '—' }}</td>
+              <td class="actions-col">
+                <button type="button" class="btn-delete" (click)="requestDelete(n, $event)">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}
+
+@if (pendingDelete(); as target) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+      <h3 id="delete-title">Eliminar noticia</h3>
+      <p class="muted">¿Estás seguro de que querés eliminar esta noticia?</p>
+      <p class="delete-target">{{ target.title }}</p>
+
+      @if (deleteError()) {
+        <div class="error">{{ deleteError() }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelDelete()" [disabled]="deleting()">Cancelar</button>
+        <button type="button" class="btn btn-delete-solid" (click)="confirmDelete()" [disabled]="deleting()">
+          {{ deleting() ? 'Eliminando…' : 'Eliminar' }}
+        </button>
+      </div>
+    </div>
   </div>
 }

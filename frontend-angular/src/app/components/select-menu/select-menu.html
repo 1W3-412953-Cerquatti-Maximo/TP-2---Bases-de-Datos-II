@@ -1,0 +1,18 @@
+<button type="button" class="select-trigger" [class.is-open]="open()"
+        aria-haspopup="listbox" [attr.aria-expanded]="open()" [attr.aria-label]="ariaLabel()"
+        (click)="toggle()">
+  <span class="select-value">{{ selectedLabel() }}</span>
+  <span class="select-caret" aria-hidden="true"></span>
+</button>
+
+@if (open()) {
+  <ul class="select-panel" role="listbox">
+    @for (opt of options(); track opt.value) {
+      <li class="select-option" role="option"
+          [class.is-selected]="opt.value === value()"
+          (click)="choose(opt.value)">
+        {{ opt.label }}
+      </li>
+    }
+  </ul>
+}

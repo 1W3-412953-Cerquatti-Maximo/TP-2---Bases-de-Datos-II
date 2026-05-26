@@ -36,7 +36,11 @@ public class DashboardRepository {
                 }
                 CALL (owner) {
                   OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(:News)-[:PUBLISHED_BY]->(s:Source)
-                  RETURN count(DISTINCT s) AS totalSources
+                  WITH collect(DISTINCT s) AS sources
+                  RETURN size(sources) AS totalSources,
+                         size([x IN sources WHERE x.credibilityScore >= 0.7]) AS highCredibilitySources,
+                         size([x IN sources WHERE x.credibilityScore >= 0.4 AND x.credibilityScore < 0.7]) AS mediumCredibilitySources,
+                         size([x IN sources WHERE x.credibilityScore IS NULL OR x.credibilityScore < 0.4]) AS lowCredibilitySources
                 }
                 CALL (owner) {
                   OPTIONAL MATCH (owner)-[:OWNS_NEWS]->(:News)-[:CONTAINS]->(c:Claim)
@@ -55,7 +59,8 @@ public class DashboardRepository {
                   RETURN count(DISTINCT u) AS totalUsers
                 }
                 RETURN totalNews, highRiskNews, mediumRiskNews, lowRiskNews,
-                       totalSources, totalClaims, totalFactChecks, totalPosts, totalUsers
+                       totalSources, highCredibilitySources, mediumCredibilitySources, lowCredibilitySources,
+                       totalClaims, totalFactChecks, totalPosts, totalUsers
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
@@ -67,6 +72,9 @@ public class DashboardRepository {
                         r.get("mediumRiskNews").asLong(0L),
                         r.get("lowRiskNews").asLong(0L),
                         r.get("totalSources").asLong(0L),
+                        r.get("highCredibilitySources").asLong(0L),
+                        r.get("mediumCredibilitySources").asLong(0L),
+                        r.get("lowCredibilitySources").asLong(0L),
                         r.get("totalClaims").asLong(0L),
                         r.get("totalFactChecks").asLong(0L),
                         r.get("totalPosts").asLong(0L),

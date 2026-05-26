@@ -39,10 +39,51 @@
 .hero-actions {
   display: flex;
   justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .hero-actions .btn {
   min-width: 220px;
+}
+
+/* Botón verde "Guardar noticia" — acción positiva, distinta del primario teal. */
+.btn-save {
+  background: var(--color-low);
+  color: #04261A;
+  box-shadow: 0 12px 24px var(--overlay-low-soft);
+}
+.btn-save:hover { opacity: 0.94; transform: translateY(-1px); }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.save-feedback { margin-top: var(--space-4); }
+
+.save-success {
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--overlay-low-soft);
+  border: 1px solid var(--color-low);
+  border-radius: 16px;
+}
+.save-success-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.save-title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+  font-size: var(--fs-body-lg);
+}
+.save-warnings { margin-top: var(--space-3); }
+.save-topics { margin-top: var(--space-3); }
+.save-actions {
+  margin-top: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .meta-row {

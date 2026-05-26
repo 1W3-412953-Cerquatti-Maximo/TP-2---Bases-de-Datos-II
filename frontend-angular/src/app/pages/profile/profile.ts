@@ -18,6 +18,7 @@ export class Profile {
   user = this.auth.currentUser;
   theme = this.themeService.theme;
   savingTheme = signal(false);
+  showLogoutConfirm = signal(false);
 
   constructor() {
     // Si entran directo a /profile (refresh) y aún no se cargó el usuario, pedirlo.
@@ -39,8 +40,17 @@ export class Profile {
     }
   }
 
-  logout(): void {
+  requestLogout(): void {
+    this.showLogoutConfirm.set(true);
+  }
+
+  cancelLogout(): void {
+    this.showLogoutConfirm.set(false);
+  }
+
+  confirmLogout(): void {
+    this.showLogoutConfirm.set(false);
     this.auth.logout();
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/login']);
   }
 }

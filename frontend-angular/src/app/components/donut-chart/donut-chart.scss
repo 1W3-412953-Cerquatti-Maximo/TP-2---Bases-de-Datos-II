@@ -1,0 +1,241 @@
+:host {
+  display: block;
+}
+
+.donut-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.donut-title {
+  margin: 0;
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Layout: figura + leyenda lado a lado; se apilan al angostarse. */
+.donut-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* --- Figura (SVG + centro + tooltip) --- */
+.donut-figure {
+  position: relative;
+  flex: 0 0 auto;
+  width: clamp(180px, 18vw, 240px);
+  height: clamp(180px, 18vw, 240px);
+}
+
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* permite que el resalte del segmento no se recorte */
+  transform: rotate(0deg);
+}
+
+.donut-track {
+  stroke: var(--color-border);
+  opacity: 0.45;
+}
+
+.donut-seg {
+  cursor: pointer;
+  /* La rotación se hace con el atributo SVG transform="rotate(angle 60 60)",
+     que ya gira alrededor del centro. NO usar transform-origin/transform-box
+     acá: en SVG2 el atributo transform se mapea a la propiedad CSS transform y
+     el transform-origin se sumaría al centro del rotate(), descentrando los
+     segmentos fuera del círculo. */
+  transition:
+    stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    stroke-width 180ms ease,
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.donut-seg.is-hover {
+  stroke-width: 26;
+  filter: brightness(1.12) drop-shadow(0 0 6px rgba(0, 0, 0, 0.35));
+}
+
+.donut-seg.is-dim {
+  opacity: 0.38;
+}
+
+/* --- Centro --- */
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.donut-total {
+  font-size: clamp(2.2rem, 1.8rem + 1.4vw, 2.9rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-center-label {
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* --- Tooltip --- */
+.donut-tooltip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 92%, #000 8%);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 14px 30px rgba(2, 8, 23, 0.35);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 16px));
+  animation: tooltip-in 120ms ease;
+}
+
+.tt-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tt-body {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.tt-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.tt-sub {
+  font-size: var(--fs-tiny);
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% - 8px)); }
+  to   { opacity: 1; transform: translate(-50%, calc(-100% - 16px)); }
+}
+
+/* --- Leyenda --- */
+.donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 220px;
+  min-width: 220px;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: default;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+
+.legend-row.is-active {
+  background: var(--overlay-surface);
+}
+
+.legend-row.is-dim {
+  opacity: 0.5;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.legend-leader {
+  flex: 1;
+  height: 0;
+  border-bottom: 1px dotted var(--color-border);
+  margin: 0 2px;
+  transform: translateY(4px);
+}
+
+.legend-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.legend-pct {
+  min-width: 46px;
+  text-align: right;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Estado vacío --- */
+.donut-empty {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  font-size: var(--fs-body);
+}
+
+/* Apilado en pantallas chicas */
+@media (max-width: 560px) {
+  .donut-body {
+    gap: var(--space-4);
+  }
+  .donut-legend {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donut-seg {
+    transition: stroke-width 180ms ease, opacity 180ms ease;
+  }
+  .donut-tooltip {
+    animation: none;
+  }
+}

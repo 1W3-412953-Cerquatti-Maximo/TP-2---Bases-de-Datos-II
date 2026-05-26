@@ -6,10 +6,11 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { NewsService } from '../../core/services/news.service';
 import { DashboardSummary } from '../../core/models/dashboard.model';
 import { NewsSummary } from '../../core/models/news.model';
+import { DonutChart, DonutItem } from '../../components/donut-chart/donut-chart';
 
 @Component({
   selector: 'nv-dashboard',
-  imports: [RouterLink],
+  imports: [RouterLink, DonutChart],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -29,6 +30,28 @@ export class Dashboard {
       .sort((a, b) => (b.riskScore ?? 0) - (a.riskScore ?? 0))
       .slice(0, 5)
   );
+
+  /** Segmentos de la dona de riesgo (mantiene los colores de riesgo existentes). */
+  riskSegments = computed<DonutItem[]>(() => {
+    const d = this.data();
+    if (!d) return [];
+    return [
+      { label: 'Bajo riesgo', value: d.lowRiskNews, color: 'var(--color-low)' },
+      { label: 'Riesgo medio', value: d.mediumRiskNews, color: 'var(--color-medium)' },
+      { label: 'Alto riesgo', value: d.highRiskNews, color: 'var(--color-high)' }
+    ];
+  });
+
+  /** Segmentos de la dona de confiabilidad de fuentes. */
+  sourceSegments = computed<DonutItem[]>(() => {
+    const d = this.data();
+    if (!d) return [];
+    return [
+      { label: 'Confiabilidad alta', value: d.highCredibilitySources, color: 'var(--color-low)' },
+      { label: 'Confiabilidad media', value: d.mediumCredibilitySources, color: 'var(--color-medium)' },
+      { label: 'Confiabilidad baja', value: d.lowCredibilitySources, color: 'var(--color-high)' }
+    ];
+  });
 
   constructor() {
     forkJoin({

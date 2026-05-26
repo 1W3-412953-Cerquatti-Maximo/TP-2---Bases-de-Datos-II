@@ -89,11 +89,11 @@ public class MockAiAnalysisService implements AiAnalysisPort {
     private String buildSummary(String title, String content) {
         String base = !content.isBlank() ? content : title;
         if (base.isBlank()) {
-            return "Resumen automático (mock): no se proporcionó texto suficiente.";
+            return "Resumen automático (IA): no se proporcionó texto suficiente.";
         }
         String shortened = base.length() > MAX_SUMMARY_CHARS
                 ? base.substring(0, MAX_SUMMARY_CHARS).trim() + "…"
                 : base;
-        return "Resumen automático (mock): " + shortened;
+        return "Resumen automático (IA): " + shortened;
     }
 }

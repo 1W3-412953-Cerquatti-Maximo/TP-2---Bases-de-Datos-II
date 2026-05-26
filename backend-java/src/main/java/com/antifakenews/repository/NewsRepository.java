@@ -64,6 +64,134 @@ public class NewsRepository {
         }
     }
 
+    /**
+     * Crea una noticia enviada por URL y la asocia al usuario autenticado.
+     * Reutiliza la Source por dominio y los Topic por nombre (MERGE). Persiste el
+     * riskScore/riskLevel/status recibidos (ya validados en el servicio). Cada tema
+     * llega como {name, source} y se vincula con (:News)-[:ABOUT {relevance, source}].
+     */
+    public NewsCreationResult createUserSubmittedNews(
+            String userId,
+            String newsId, String title, String content, String url,
+            String sourceId, String sourceName, String domain,
+            long riskScore, String riskLevel, String status,
+            List<Map<String, Object>> topics) {
+
+        final String cypher = """
+                MATCH (owner:AppUser {id: $userId})
+                CREATE (n:News {
+                  id: $newsId,
+                  title: $title,
+                  content: $content,
+                  url: $url,
+                  createdAt: datetime(),
+                  publishedAt: datetime(),
+                  status: $status,
+                  riskScore: $riskScore,
+                  riskLevel: $riskLevel,
+                  origin: 'USER_SUBMITTED_URL'
+                })
+                CREATE (owner)-[:OWNS_NEWS {createdAt: datetime(), origin: 'USER_SUBMISSION'}]->(n)
+                MERGE (s:Source {domain: $domain})
+                  ON CREATE SET s.id = $sourceId,
+                                s.name = $sourceName,
+                                s.type = 'WEB',
+                                s.url = $url,
+                                s.credibilityScore = 0.5,
+                                s.country = 'UNKNOWN'
+                CREATE (n)-[:PUBLISHED_BY {firstSeenAt: datetime(), sourceUrl: $url}]->(s)
+                FOREACH (topic IN $topics |
+                  MERGE (t:Topic {name: topic.name})
+                    ON CREATE SET t.id = randomUUID(),
+                                  t.slug = toLower(replace(topic.name, ' ', '-'))
+                  CREATE (n)-[:ABOUT {relevance: 0.5, source: topic.source}]->(t)
+                )
+                WITH n, s
+                OPTIONAL MATCH (n)-[:ABOUT]->(t:Topic)
+                RETURN n.id        AS newsId,
+                       n.title     AS title,
+                       n.url       AS url,
+                       n.status    AS status,
+                       n.riskScore AS riskScore,
+                       n.riskLevel AS riskLevel,
+                       s.name      AS sourceName,
+                       collect(DISTINCT t.name) AS topicNames
+                """;
+
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("userId", userId);
+        params.put("newsId", newsId);
+        params.put("title", title);
+        params.put("content", content);
+        params.put("url", url);
+        params.put("sourceId", sourceId);
+        params.put("sourceName", sourceName);
+        params.put("domain", domain);
+        params.put("riskScore", riskScore);
+        params.put("riskLevel", riskLevel);
+        params.put("status", status);
+        params.put("topics", topics);
+
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeWrite(tx -> {
+                Record r = tx.run(cypher, params).single();
+                return new NewsCreationResult(
+                        r.get("newsId").asString(null),
+                        r.get("title").asString(null),
+                        r.get("url").asString(null),
+                        r.get("status").asString(null),
+                        r.get("riskScore").asLong(0L),
+                        r.get("riskLevel").asString(null),
+                        r.get("sourceName").asString(null),
+                        r.get("topicNames").asList(Value::asString)
+                );
+            });
+        }
+    }
+
+    /**
+     * Elimina una noticia que pertenezca al usuario autenticado.
+     * Borra la News (DETACH DELETE quita OWNS_NEWS, PUBLISHED_BY, ABOUT, CONTAINS…),
+     * los Post que difunden exclusivamente esta noticia, y la Source solo si queda
+     * sin ninguna otra News asociada globalmente. No toca AppUser, Topic, Claim,
+     * Evidence ni FactCheck (pueden ser compartidos). Empty => 404.
+     */
+    public Optional<DeleteResult> deleteOwnedNews(String userId, String newsId) {
+        final String cypher = """
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $newsId})
+                OPTIONAL MATCH (n)-[:PUBLISHED_BY]->(s:Source)
+                OPTIONAL MATCH (s)<-[:PUBLISHED_BY]-(otherNews:News)
+                  WHERE otherNews <> n
+                WITH n, s, count(DISTINCT otherNews) AS otherNewsCount
+                OPTIONAL MATCH (p:Post)-[:SPREADS]->(n)
+                  WHERE NOT EXISTS { MATCH (p)-[:SPREADS]->(other:News) WHERE other <> n }
+                WITH n, s, otherNewsCount, collect(DISTINCT p) AS exclusivePosts
+                WITH n, s, exclusivePosts,
+                     (s IS NOT NULL AND otherNewsCount = 0) AS deleteSource,
+                     s.name AS sourceName
+                FOREACH (post IN exclusivePosts | DETACH DELETE post)
+                DETACH DELETE n
+                FOREACH (src IN CASE WHEN deleteSource THEN [s] ELSE [] END | DETACH DELETE src)
+                RETURN $newsId AS newsId, true AS deleted, deleteSource AS sourceDeleted, sourceName AS sourceName
+                """;
+
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeWrite(tx -> {
+                Result result = tx.run(cypher, Map.of("userId", userId, "newsId", newsId));
+                if (!result.hasNext()) {
+                    return Optional.<DeleteResult>empty();
+                }
+                Record r = result.next();
+                return Optional.of(new DeleteResult(
+                        r.get("newsId").asString(null),
+                        r.get("deleted").asBoolean(false),
+                        r.get("sourceDeleted").asBoolean(false),
+                        r.get("sourceName").asString(null)
+                ));
+            });
+        }
+    }
+
     public Optional<NewsDetailDto> findById(String userId, String id) {
         final String cypher = """
                 MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $id})
@@ -178,4 +306,24 @@ public class NewsRepository {
             });
         }
     }
+
+    /** Proyección del resultado de crear una noticia por URL. */
+    public record NewsCreationResult(
+            String newsId,
+            String title,
+            String url,
+            String status,
+            long riskScore,
+            String riskLevel,
+            String sourceName,
+            List<String> topicNames
+    ) {}
+
+    /** Proyección del resultado de eliminar una noticia. */
+    public record DeleteResult(
+            String newsId,
+            boolean deleted,
+            boolean sourceDeleted,
+            String sourceName
+    ) {}
 }

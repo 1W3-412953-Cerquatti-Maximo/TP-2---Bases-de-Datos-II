@@ -1,14 +1,18 @@
 package com.antifakenews.controller;
 
+import com.antifakenews.dto.DeleteNewsResponse;
 import com.antifakenews.dto.EvaluateLinkRequest;
 import com.antifakenews.dto.EvaluateLinkResponse;
 import com.antifakenews.dto.NewsAnalysisDto;
 import com.antifakenews.dto.NewsDetailDto;
 import com.antifakenews.dto.NewsSummaryDto;
+import com.antifakenews.dto.SubmitNewsUrlRequest;
+import com.antifakenews.dto.SubmitNewsUrlResponse;
 import com.antifakenews.security.AuthenticatedUserResolver;
 import com.antifakenews.service.NewsAnalysisService;
 import com.antifakenews.service.NewsLinkEvaluationService;
 import com.antifakenews.service.NewsService;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,5 +59,17 @@ public class NewsController {
     public EvaluateLinkResponse evaluateLink(@RequestBody EvaluateLinkRequest request) {
         currentUser.requireCurrentUser();
         return newsLinkEvaluationService.evaluateLink(request);
+    }
+
+    @PostMapping("/submit-url")
+    public SubmitNewsUrlResponse submitUrl(@RequestBody SubmitNewsUrlRequest request) {
+        String userId = currentUser.requireUserId();
+        return newsService.submitUrl(userId, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public DeleteNewsResponse delete(@PathVariable String id) {
+        String userId = currentUser.requireUserId();
+        return newsService.deleteNews(userId, id);
     }
 }

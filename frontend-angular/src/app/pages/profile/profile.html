@@ -14,7 +14,7 @@
         <dt>Rol</dt><dd><span class="badge badge-info">{{ u.role }}</span></dd>
         <dt>Tema</dt><dd><span class="badge">{{ u.themePreference }}</span></dd>
       </dl>
-      <button type="button" class="btn btn-ghost logout-btn" (click)="logout()">Cerrar sesión</button>
+      <button type="button" class="btn btn-logout logout-btn" (click)="requestLogout()">Cerrar sesión</button>
     </section>
 
     <section class="card">
@@ -45,4 +45,17 @@
   </div>
 } @else {
   <div class="loading">Cargando perfil…</div>
+}
+
+@if (showLogoutConfirm()) {
+  <div class="modal-overlay" (click)="cancelLogout()">
+    <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="logout-title">
+      <h3 id="logout-title">Cerrar sesión</h3>
+      <p class="muted">¿Estás seguro de que querés cerrar sesión?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelLogout()">Cancelar</button>
+        <button type="button" class="btn btn-logout-solid" (click)="confirmLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
 }

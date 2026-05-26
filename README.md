@@ -126,12 +126,16 @@ Abrir **Neo4j Query**, seleccionar la base `antifakenews` y ejecutar **en orden*
 |------|---------------------------------|-----------------------------------------------------|
 | 0 *(opcional, solo dev)* | `cypher/00_reset_database.cypher` | ⚠️ Borra TODOS los nodos y relaciones. Útil para re-cargar el seed limpio en local. **Nunca en producción.** |
 | 1    | `cypher/01_constraints.cypher`  | Crea constraints únicos para los 8 tipos de nodo    |
-| 2    | `cypher/02_seed_data.cypher`    | Carga el dataset ficticio (8 noticias, 6 fuentes, 10 usuarios, 13 posts, 6 temas, 8 claims, 6 evidencias, 5 fact checks) **con propiedades en nodos y en relaciones** |
+| 2    | `cypher/02_seed_data.cypher`    | Carga el dataset ficticio base (8 noticias, 6 fuentes, 10 usuarios, 13 posts, 6 temas, 8 claims, 6 evidencias, 5 fact checks) **con propiedades en nodos y en relaciones** |
 | 3    | `cypher/03_queries.cypher`      | Consultas de demostración para la defensa del TP   |
+| 4 *(opcional, recomendado para demo)* | `cypher/04_additional_news_seed.cypher` | **Aditivo**: agrega 22 noticias más (`news-009`..`news-030`) con variedad de riesgo (**LOW, MEDIUM y HIGH**), 8 fuentes, 6 temas, 22 claims, 14 evidencias, 12 fact checks, 25 posts y 14 usuarios. Asocia todas las noticias nuevas a la cuenta demo. |
+| 5 *(verificación)* | `cypher/05_verification_queries.cypher` | Consultas de solo lectura para validar volumen y distribución (riesgo, temas, credibilidad, conteos). |
 
-> Los scripts 01, 02 y 03 son **idempotentes** (`IF NOT EXISTS` + `MERGE` + `SET`): se pueden re-ejecutar sin duplicar nodos. El script 00 es **destructivo** — usar solo en desarrollo local antes de re-cargar el seed.
+> Los scripts 01, 02, 03 y 04 son **idempotentes** (`IF NOT EXISTS` + `MERGE` + `SET`): se pueden re-ejecutar sin duplicar nodos. El script 00 es **destructivo** — usar solo en desarrollo local antes de re-cargar el seed.
 >
 > **Sobre `riskScore`**: en `News` la propiedad va de **0 a 100** (no 0 a 1). El nivel categórico `riskLevel` queda derivado: `LOW` 0–39, `MEDIUM` 40–69, `HIGH` 70–100.
+>
+> **Sobre el seed adicional (`04`)**: es **opcional pero recomendado para la demo** porque suma volumen y, sobre todo, noticias **MEDIUM** (el seed base no tiene ninguna), que ahora se ven en dashboard y reportes. Tras cargarlo la base queda con ~30 noticias (≈12 LOW, 9 MEDIUM, 9 HIGH) y mayor variedad de fuentes y temas. Las 22 noticias nuevas quedan asociadas a la **cuenta demo** (`demo@nexoveraz.local`) vía `OWNS_NEWS`. Si la cuenta demo todavía no existe, levantá el backend una vez (lo crea `DemoDataInitializer`) o re-ejecutá el script `04` después; es idempotente.
 
 ### Verificación rápida después del paso 2
 
@@ -211,8 +215,10 @@ RETURN a.username, b.username, r.since, r.interactionStrength LIMIT 5;
 ├── cypher/
 │   ├── 00_reset_database.cypher             # ⚠️ Solo desarrollo: vacía la base
 │   ├── 01_constraints.cypher                # Constraints únicos (8 nodos)
-│   ├── 02_seed_data.cypher                  # Dataset ficticio (props en nodos y relaciones)
-│   └── 03_queries.cypher                    # Consultas de demostración
+│   ├── 02_seed_data.cypher                  # Dataset ficticio base (props en nodos y relaciones)
+│   ├── 03_queries.cypher                    # Consultas de demostración
+│   ├── 04_additional_news_seed.cypher       # Seed aditivo: +22 noticias (LOW/MEDIUM/HIGH) → cuenta demo
+│   └── 05_verification_queries.cypher       # Consultas de verificación (solo lectura)
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -628,6 +634,59 @@ curl http://localhost:8080/api/dashboard/summary -H "Authorization: Bearer <TOKE
 
 ---
 
+## Noticias por URL: alta, borrado y temas (Fase 8.2)
+
+Cada usuario puede **cargar noticias desde una URL** y **eliminarlas**. Todo opera sobre su subgrafo (`OWNS_NEWS`) y requiere `Authorization: Bearer <token>`.
+
+### Endpoints
+
+| Método | Endpoint                 | Descripción                                                                 |
+|--------|--------------------------|-----------------------------------------------------------------------------|
+| POST   | `/api/news/submit-url`   | Crea una noticia desde una URL (extracción best-effort + temas + riesgo)    |
+| DELETE | `/api/news/{id}`         | Elimina una noticia propia (404 si no existe o no le pertenece)             |
+
+### Persistencia del `riskScore` evaluado
+
+`POST /api/news/submit-url` acepta opcionalmente `riskScore`, `riskLevel` y `evaluationSummary`. Esto resuelve la incongruencia de que una noticia evaluada con score 20 se guardara con score 0:
+
+- **Con `riskScore`**: se clampea a `[0, 100]`; el `riskLevel` se valida (`LOW`/`MEDIUM`/`HIGH`) o se deriva del score (`0–39 LOW`, `40–69 MEDIUM`, `70–100 HIGH`); el `status` queda en **`EVALUATED`**.
+- **Sin `riskScore`**: `riskScore = 0`, `riskLevel = LOW`, `status = PENDING_ANALYSIS`.
+
+El frontend ("Evaluar link") reenvía el `riskScore`/`riskLevel` que devolvió la evaluación, de modo que `/news` muestra el mismo score. El análisis determinístico del grafo sigue disponible aparte vía `GET /api/news/{id}/analysis`.
+
+### Asociación automática de temas
+
+`TopicSuggestionService` asegura que toda noticia tenga al menos un tema:
+
+1. Primero respeta los `topicNames` enviados por el frontend/IA (marcados `source: USER_OR_AI`).
+2. Luego agrega temas detectados por palabras clave sobre título + contenido + URL + fuente (marcados `source: AUTO`), normalizando acentos: **Salud, Tecnología, Economía, Política, Clima, Seguridad**.
+3. Si no se detecta ninguno, asocia **`General`**.
+
+Cada tema se vincula con `MERGE (t:Topic {name})` + `(:News)-[:ABOUT {relevance: 0.5, source}]->(t)`. La respuesta incluye `topicNames`, y los temas se ven en `/news` y `/news/{id}`.
+
+### Borrado y fuente huérfana
+
+`DELETE /api/news/{id}` valida pertenencia (`(:AppUser {id})-[:OWNS_NEWS]->(:News {id})`) y luego:
+
+- `DETACH DELETE` de la `News` (quita `OWNS_NEWS`, `PUBLISHED_BY`, `ABOUT`, `CONTAINS`…).
+- Borra los `Post` que difundían **exclusivamente** esa noticia (no se tocan los que difunden otras).
+- Borra la `Source` **solo si** no le queda ninguna otra `News` asociada globalmente (fuente huérfana). Si la comparten otras noticias, se conserva.
+- **No** elimina `AppUser`, `Topic`, `Claim`, `Evidence` ni `FactCheck` (pueden ser compartidos).
+
+Respuesta `DeleteNewsResponse`:
+
+```json
+{ "newsId": "...", "deleted": true, "sourceDeleted": true, "sourceName": "ejemplo.com" }
+```
+
+En el frontend, `/news` y `/news/{id}` ofrecen un botón **Eliminar** rojo con modal de confirmación; al confirmar, el listado se actualiza en memoria (sin volver a pedir `/api/news`) y el detalle redirige a `/news`. Si se eliminó la fuente, se avisa.
+
+### IDs técnicos ocultos en la UI
+
+Los identificadores internos (`news-003`, `src-002`, UUIDs) ya **no se muestran** en listado, detalle, fuentes ni en la tarjeta de éxito de "Evaluar link". Se siguen usando internamente para el ruteo; el cambio es solo visual.
+
+---
+
 ## Guion de demo
 
 Flujo recomendado para presentar el TP (~5 minutos).
@@ -700,3 +759,5 @@ Abrir **http://localhost:4200**.
 - [x] **Fase 7.1** — Backend de autenticación demo: register/login/me/preferences con BCrypt + token UUID en Neo4j (`:AppUser`, `:AuthSession`).
 - [x] **Fase 7.2** — Frontend de auth: pantallas Login/Register/Profile, interceptor Bearer, guard en `/profile`, y toggle de tema claro/oscuro sincronizado con la cuenta.
 - [x] **Fase 7.3** — Flujo protegido por login: endpoints protegidos por token, datos filtrados por `OWNS_NEWS`, cuenta demo con seed, cuenta nueva vacía, redirección a `/login` sin sesión.
+- [x] **Fase 8** — Evaluar link + alta de noticia por URL (`/api/news/submit-url`), dashboard con donas, scroll interno y acordeones en el detalle.
+- [x] **Fase 8.2** — Borrado de noticias (`DELETE /api/news/{id}`) con limpieza de fuente huérfana, persistencia del `riskScore` evaluado al guardar, asociación automática de temas y ocultamiento de IDs técnicos en la UI.

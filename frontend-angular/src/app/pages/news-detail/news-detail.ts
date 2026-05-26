@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import { NewsService } from '../../core/services/news.service';
@@ -24,6 +24,7 @@ export class NewsDetail {
   private graphService = inject(GraphService);
   private aiService = inject(AiService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   readonly groupOrder = GRAPH_NODE_ORDER;
   readonly groupNodeMeta = GRAPH_NODE_META;
@@ -42,6 +43,11 @@ export class NewsDetail {
   aiResult = signal<AiAnalyzeNewsResponse | null>(null);
   aiLoading = signal(false);
   aiError = signal<string | null>(null);
+
+  // Eliminación de noticia.
+  showDeleteConfirm = signal(false);
+  deleting = signal(false);
+  deleteError = signal<string | null>(null);
 
   constructor() {
     this.route.paramMap.subscribe(params => {
@@ -127,6 +133,41 @@ export class NewsDetail {
     });
   }
 
+  requestDelete(): void {
+    this.deleteError.set(null);
+    this.showDeleteConfirm.set(true);
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm.set(false);
+  }
+
+  confirmDelete(): void {
+    const d = this.detail();
+    if (!d || this.deleting()) return;
+
+    this.deleting.set(true);
+    this.deleteError.set(null);
+
+    this.newsService.delete(d.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.showDeleteConfirm.set(false);
+        this.router.navigate(['/news']);
+      },
+      error: (err) => {
+        if (err?.status === 404) {
+          this.deleteError.set('La noticia no existe o no te pertenece.');
+        } else if (err?.status === 0) {
+          this.deleteError.set('No se pudo conectar con el backend.');
+        } else {
+          this.deleteError.set(err?.error?.message ?? err?.message ?? 'No se pudo eliminar la noticia.');
+        }
+        this.deleting.set(false);
+      }
+    });
+  }
+
   riskBadgeClass(level: RiskLevel | null): string {
     if (level === 'HIGH') return 'badge badge-high';
     if (level === 'MEDIUM') return 'badge badge-medium';
@@ -147,18 +188,5 @@ export class NewsDetail {
 
   groupColor(label: GraphNodeLabel): string {
     return this.groupNodeMeta[label].color;
-  }
-
-  edgePropEntries(props: Record<string, unknown>): Array<{ key: string; value: string }> {
-    return Object.entries(props ?? {}).map(([key, value]) => ({
-      key,
-      value: this.formatProp(value)
-    }));
-  }
-
-  private formatProp(value: unknown): string {
-    if (value === null || value === undefined) return '—';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
   }
 }

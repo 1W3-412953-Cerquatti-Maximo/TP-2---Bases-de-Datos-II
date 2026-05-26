@@ -88,6 +88,68 @@ public class WebArticleExtractionService {
         );
     }
 
+    /**
+     * Extracción best-effort de metadata para guardar una noticia por URL.
+     * Valida formato y host (puede lanzar IllegalArgumentException ante una URL
+     * inválida o privada), pero NUNCA rompe por fallos de red o parsing: si la
+     * web bloquea o falla, devuelve un resultado con success=false y los datos
+     * que se hayan podido recuperar.
+     */
+    public BestEffortExtraction extractMetadata(String rawUrl) {
+        URI uri = parseAndValidateUrl(rawUrl);
+        validatePublicHost(uri.getHost());
+        String domain = uri.getHost();
+
+        List<String> warnings = new ArrayList<>();
+        try {
+            Document document = fetchDocument(uri.toString());
+
+            String title = firstNonBlank(
+                    metaContent(document, "meta[property=og:title]"),
+                    metaContent(document, "meta[name=twitter:title]"),
+                    document.title()
+            );
+            String description = firstNonBlank(
+                    metaContent(document, "meta[property=og:description]"),
+                    metaContent(document, "meta[name=description]"),
+                    metaContent(document, "meta[name=twitter:description]")
+            );
+            String siteName = firstNonBlank(
+                    metaContent(document, "meta[property=og:site_name]"),
+                    metaContent(document, "meta[name=application-name]"),
+                    metaContent(document, "meta[name=publisher]")
+            );
+
+            boolean titleExtracted = !title.isBlank();
+            boolean descriptionExtracted = !description.isBlank();
+            if (!titleExtracted) {
+                warnings.add("No se pudo extraer un título de la página; se usará el título manual o uno por defecto.");
+            }
+            if (!descriptionExtracted) {
+                warnings.add("No se encontró una descripción en la metadata de la página.");
+            }
+
+            return new BestEffortExtraction(
+                    true, domain,
+                    nullIfBlank(title), nullIfBlank(description), nullIfBlank(siteName),
+                    titleExtracted, descriptionExtracted,
+                    List.copyOf(warnings)
+            );
+        } catch (RuntimeException ex) {
+            warnings.add("No se pudo descargar o procesar el contenido del enlace; la noticia se guarda con los datos disponibles.");
+            return new BestEffortExtraction(
+                    false, domain,
+                    null, null, null,
+                    false, false,
+                    List.copyOf(warnings)
+            );
+        }
+    }
+
+    private String nullIfBlank(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
     private URI parseAndValidateUrl(String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) {
             throw new IllegalArgumentException("Ingresá una URL válida.");
@@ -259,4 +321,16 @@ public class WebArticleExtractionService {
     ) {}
 
     private record SourceMetadata(String name, boolean fromMetadata) {}
+
+    /** Metadata best-effort para creación de noticia por URL. Campos null si no se pudieron extraer. */
+    public record BestEffortExtraction(
+            boolean success,
+            String domain,
+            String title,
+            String description,
+            String siteName,
+            boolean titleExtracted,
+            boolean descriptionExtracted,
+            List<String> warnings
+    ) {}
 }

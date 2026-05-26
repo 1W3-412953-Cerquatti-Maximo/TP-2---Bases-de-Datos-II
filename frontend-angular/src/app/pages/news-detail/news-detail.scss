@@ -235,10 +235,63 @@
   border-top: 1px solid var(--color-border);
 }
 
-.detail-grid { margin-bottom: var(--space-6); }
+/* --- Acordeones de datos asociados --- */
+.accordions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
 
-.entity-list,
-.user-list {
+.accordion {
+  padding: 0;
+  overflow: hidden;
+}
+.accordion > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  font-size: var(--fs-body);
+  user-select: none;
+}
+.accordion > summary::-webkit-details-marker { display: none; }
+.accordion > summary::after {
+  content: '▾';
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+.accordion[open] > summary::after { transform: rotate(180deg); }
+.accordion > summary:hover { background: var(--overlay-accent-soft); }
+
+.acc-title { color: var(--color-text); }
+.acc-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--overlay-primary-soft);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+}
+
+.acc-body {
+  padding: 0 var(--space-5) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.entity-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -261,24 +314,6 @@
   flex-wrap: wrap;
   margin-bottom: var(--space-2);
 }
-
-.user-list {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.user-list li {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 8px 14px;
-  background: var(--overlay-primary-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-}
-
-.user-name { font-size: var(--fs-small); }
 
 .graph-section { margin-top: var(--space-8); }
 
@@ -347,10 +382,61 @@ nv-graph-viewer {
   margin-bottom: var(--space-4);
 }
 
-.edges-card .table-wrapper {
-  max-height: 400px;
-  overflow-y: auto;
+/* Botón "Eliminar noticia" en el hero: rojo, fondo transparente, hover rojo fuerte. */
+.btn-delete {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-high);
+  background: transparent;
+  color: var(--color-high);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease;
 }
+.btn-delete:hover {
+  background: var(--color-high);
+  color: #1A0606;
+}
+
+/* Modal de confirmación de borrado. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(2, 8, 23, 0.62);
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  width: 100%;
+  max-width: 460px;
+  padding: var(--space-6);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.modal-card h3 { margin-top: 0; }
+.delete-target {
+  font-weight: 600;
+  margin: var(--space-2) 0 var(--space-4);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  flex-wrap: wrap;
+}
+.btn-delete-solid {
+  background: var(--color-high);
+  color: #1A0606;
+}
+.btn-delete-solid:hover { opacity: 0.94; transform: translateY(-1px); }
+.btn-delete-solid:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 @media (max-width: 720px) {
   .disclaimer,

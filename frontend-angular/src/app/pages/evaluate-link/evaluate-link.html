@@ -13,7 +13,6 @@
       <p class="muted small">
         El resultado combina extracción web, reglas de credibilidad y un resumen asistido por IA si está disponible.
       </p>
-      <p class="quiet-note tiny muted">Consulta ad-hoc. La noticia no se guarda automáticamente.</p>
     </div>
     <span class="badge badge-info">URL pública</span>
   </div>
@@ -36,7 +35,50 @@
     <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="loading()">
       {{ loading() ? 'Evaluando…' : 'Buscar y evaluar' }}
     </button>
+    <button type="button" class="btn btn-save" (click)="save()" [disabled]="!canSave()">
+      {{ saving() ? 'Guardando…' : 'Guardar noticia' }}
+    </button>
   </div>
+
+  @if (saveError()) {
+    <div class="error save-feedback">{{ saveError() }}</div>
+  }
+
+  @if (saveResult(); as saved) {
+    <div class="save-success">
+      <div class="save-success-head">
+        <span class="badge badge-low">Noticia guardada</span>
+        <span [class]="riskBadgeClass(saved.riskLevel)">{{ saved.riskLevel }} ({{ saved.riskScore }})</span>
+      </div>
+      <p class="save-title">{{ saved.title }}</p>
+      <p class="muted small">
+        Fuente: {{ saved.sourceName }} · Estado: {{ saved.status }}
+      </p>
+
+      @if (saved.topicNames.length > 0) {
+        <div class="save-topics">
+          @for (topic of saved.topicNames; track topic) {
+            <span class="chip">{{ topic }}</span>
+          }
+        </div>
+      }
+
+      @if (saveHasWarnings()) {
+        <ul class="bullet-list warnings-list save-warnings">
+          @if (!saved.extraction.success) {
+            <li>No se pudo extraer toda la metadata de la página; la noticia se guardó con los datos disponibles.</li>
+          }
+          @for (warning of saved.extraction.warnings; track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+
+      <div class="save-actions">
+        <a class="btn btn-primary" [routerLink]="['/news', saved.newsId]">Ver noticia</a>
+      </div>
+    </div>
+  }
 </section>
 
 @if (error()) {
@@ -120,7 +162,7 @@
           <p class="muted small">Salida complementaria. No reemplaza el diagnóstico principal.</p>
         </div>
         @if (aiResult(); as ai) {
-          <span class="badge" [class.badge-info]="ai.enabled">{{ ai.enabled ? ai.provider : 'IA desactivada' }}</span>
+          <span class="badge" [class.badge-info]="ai.enabled">{{ ai.enabled ? 'IA' : 'IA desactivada' }}</span>
         }
       </div>
 

@@ -1,6 +1,6 @@
 <section class="page-header">
   <h1>Dashboard</h1>
-  <p class="muted">Panorama general del grafo Neo4j y distribución de riesgo de las noticias indexadas.</p>
+  <p class="muted">Panorama general y distribución de riesgo de las noticias indexadas.</p>
 </section>
 
 <section class="card intro">
@@ -33,84 +33,31 @@
   <div class="error">{{ error() }}</div>
 } @else if (data(); as d) {
 
-  <section class="grid grid-3 risk-cards">
-    <div class="card risk-card risk-low">
-      <div class="risk-label">Bajo riesgo</div>
-      <div class="risk-value">{{ d.lowRiskNews }}</div>
-      <div class="small muted">noticias con riskScore 0–39</div>
+  <section class="charts">
+    <div class="card chart-card">
+      <nv-donut-chart
+        title="Distribución de riesgo"
+        centerLabel="Noticias"
+        tooltipUnit="noticias"
+        [items]="riskSegments()"
+        emptyMessage="Todavía no tenés noticias para graficar." />
     </div>
-    <div class="card risk-card risk-medium">
-      <div class="risk-label">Riesgo medio</div>
-      <div class="risk-value">{{ d.mediumRiskNews }}</div>
-      <div class="small muted">noticias con riskScore 40–69</div>
-    </div>
-    <div class="card risk-card risk-high">
-      <div class="risk-label">Alto riesgo</div>
-      <div class="risk-value">{{ d.highRiskNews }}</div>
-      <div class="small muted">noticias con riskScore 70–100</div>
+
+    <div class="card chart-card">
+      <nv-donut-chart
+        title="Confiabilidad de fuentes"
+        centerLabel="Fuentes"
+        tooltipUnit="fuentes"
+        [items]="sourceSegments()"
+        emptyMessage="Todavía no tenés fuentes para graficar." />
     </div>
   </section>
-
-  <section class="grid grid-3 totals">
-    <div class="card stat">
-      <div class="stat-icon">▤</div>
-      <div>
-        <div class="stat-label">Total noticias</div>
-        <div class="stat-value">{{ d.totalNews }}</div>
-      </div>
-    </div>
-    <div class="card stat">
-      <div class="stat-icon">⟁</div>
-      <div>
-        <div class="stat-label">Fuentes</div>
-        <div class="stat-value">{{ d.totalSources }}</div>
-      </div>
-    </div>
-    <div class="card stat">
-      <div class="stat-icon">◐</div>
-      <div>
-        <div class="stat-label">Claims</div>
-        <div class="stat-value">{{ d.totalClaims }}</div>
-      </div>
-    </div>
-    <div class="card stat">
-      <div class="stat-icon">✓</div>
-      <div>
-        <div class="stat-label">Fact Checks</div>
-        <div class="stat-value">{{ d.totalFactChecks }}</div>
-      </div>
-    </div>
-    <div class="card stat">
-      <div class="stat-icon">✸</div>
-      <div>
-        <div class="stat-label">Posts</div>
-        <div class="stat-value">{{ d.totalPosts }}</div>
-      </div>
-    </div>
-    <div class="card stat">
-      <div class="stat-icon">⚇</div>
-      <div>
-        <div class="stat-label">Usuarios</div>
-        <div class="stat-value">{{ d.totalUsers }}</div>
-      </div>
-    </div>
-  </section>
-
-  @if (d.totalNews === 0) {
-    <section class="card empty-state">
-      <h3>Todavía no tenés noticias</h3>
-      <p class="muted">
-        Tu cuenta aún no tiene noticias asociadas. Cuando cargues noticias propias
-        (Fase 8), el dashboard, el listado y los reportes se irán completando.
-      </p>
-    </section>
-  }
 
   @if (highRiskShortcuts().length > 0) {
     <section class="card high-risk">
       <div class="hr-head">
         <div>
-          <h3>Acceso rápido — noticias de alto riesgo</h3>
+          <h3>Acceso rápido — Noticias de alto riesgo</h3>
           <p class="muted small">Cola de revisión prioritaria.</p>
         </div>
         <a routerLink="/news" class="btn btn-ghost">Ver todas</a>
