@@ -3,7 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { NewsService } from '../../core/services/news.service';
+import { AiService } from '../../core/services/ai.service';
 import { EvaluateLinkResponse } from '../../core/models/link-evaluation.model';
+import { AiAnalyzeNewsResponse } from '../../core/models/ai.model';
 import { SubmitNewsUrlRequest, SubmitNewsUrlResponse } from '../../core/models/submit-news.model';
 import { RiskLevel } from '../../core/models/news.model';
 
@@ -15,6 +17,7 @@ import { RiskLevel } from '../../core/models/news.model';
 })
 export class EvaluateLink {
   private newsService = inject(NewsService);
+  private aiService = inject(AiService);
 
   url = '';
   loading = signal(false);
@@ -26,8 +29,12 @@ export class EvaluateLink {
   saveError = signal<string | null>(null);
   saveResult = signal<SubmitNewsUrlResponse | null>(null);
 
+  // Resumen asistido por IA: opcional y SOLO bajo demanda (no se ejecuta al evaluar).
+  aiResult = signal<AiAnalyzeNewsResponse | null>(null);
+  aiLoading = signal(false);
+  aiError = signal<string | null>(null);
+
   diagnosis = computed(() => this.result()?.credibilityDiagnosis ?? null);
-  aiResult = computed(() => this.result()?.aiAnalysis ?? null);
 
   /** Habilita "Guardar noticia" solo con una URL http/https con formato razonable. */
   canSave(): boolean {
@@ -44,6 +51,10 @@ export class EvaluateLink {
     this.loading.set(true);
     this.error.set(null);
     this.result.set(null);
+    // Una nueva evaluación descarta el resumen IA anterior (no se vuelve a generar solo).
+    this.aiResult.set(null);
+    this.aiError.set(null);
+    this.aiLoading.set(false);
 
     this.newsService.evaluateLink({ url: trimmedUrl }).subscribe({
       next: (response) => {
@@ -104,6 +115,44 @@ export class EvaluateLink {
   saveHasWarnings(): boolean {
     const ext = this.saveResult()?.extraction;
     return !!ext && (!ext.success || ext.warnings.length > 0);
+  }
+
+  /** Hay un link evaluado con texto suficiente para pedir el resumen IA. */
+  canGenerateSummary(): boolean {
+    const r = this.result();
+    return !this.aiLoading() && !!r && !!(r.title || r.contentPreview);
+  }
+
+  /** Resumen asistido por IA bajo demanda (solo al presionar el botón). */
+  generateSummary(): void {
+    const evaluation = this.result();
+    if (!evaluation || this.aiLoading() || !this.canGenerateSummary()) return;
+
+    const diagnosis = this.diagnosis();
+    this.aiLoading.set(true);
+    this.aiError.set(null);
+    this.aiResult.set(null);
+
+    this.aiService.analyzeNewsText({
+      title: evaluation.title,
+      content: evaluation.contentPreview,
+      url: evaluation.url,
+      riskScore: diagnosis?.riskScore ?? null,
+      riskLevel: diagnosis?.riskLevel ?? null
+    }).subscribe({
+      next: (res) => {
+        this.aiResult.set(res);
+        this.aiLoading.set(false);
+      },
+      error: (err) => {
+        this.aiLoading.set(false);
+        if (err?.status === 0) {
+          this.aiError.set('No se pudo conectar con el backend.');
+        } else {
+          this.aiError.set(err?.error?.message ?? err?.message ?? 'No se pudo generar el resumen IA.');
+        }
+      }
+    });
   }
 
   riskBadgeClass(level: RiskLevel | null): string {

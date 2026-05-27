@@ -158,8 +158,8 @@
     <section class="card ai-section">
       <div class="section-head">
         <div>
-          <h3>Resumen asistido</h3>
-          <p class="muted small">Salida complementaria. No reemplaza el diagnóstico principal.</p>
+          <h3>Resumen asistido por IA</h3>
+          <p class="muted small">Salida complementaria y opcional. No reemplaza el diagnóstico principal.</p>
         </div>
         @if (aiResult(); as ai) {
           <span class="badge" [class.badge-info]="ai.enabled && ai.ok">
@@ -218,6 +218,24 @@
             </div>
           }
         }
+
+        <div class="ai-actions">
+          <button type="button" class="btn btn-ghost" (click)="generateSummary()" [disabled]="aiLoading()">
+            {{ aiLoading() ? 'Generando…' : 'Regenerar resumen IA' }}
+          </button>
+        </div>
+      } @else {
+
+        @if (aiLoading()) {
+          <div class="loading">Generando resumen con IA…</div>
+        }
+        @if (aiError()) {
+          <div class="error">{{ aiError() }}</div>
+        }
+
+        <button type="button" class="btn btn-ghost" (click)="generateSummary()" [disabled]="!canGenerateSummary()">
+          {{ aiLoading() ? 'Generando…' : 'Generar resumen IA' }}
+        </button>
       }
     </section>
 

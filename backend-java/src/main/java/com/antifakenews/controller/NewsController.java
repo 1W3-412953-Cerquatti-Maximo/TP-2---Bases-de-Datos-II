@@ -1,5 +1,6 @@
 package com.antifakenews.controller;
 
+import com.antifakenews.dto.AiNewsEnrichmentResponse;
 import com.antifakenews.dto.DeleteNewsResponse;
 import com.antifakenews.dto.EvaluateLinkRequest;
 import com.antifakenews.dto.EvaluateLinkResponse;
@@ -9,6 +10,7 @@ import com.antifakenews.dto.NewsSummaryDto;
 import com.antifakenews.dto.SubmitNewsUrlRequest;
 import com.antifakenews.dto.SubmitNewsUrlResponse;
 import com.antifakenews.security.AuthenticatedUserResolver;
+import com.antifakenews.service.AiNewsEnrichmentService;
 import com.antifakenews.service.NewsAnalysisService;
 import com.antifakenews.service.NewsLinkEvaluationService;
 import com.antifakenews.service.NewsService;
@@ -29,14 +31,17 @@ public class NewsController {
     private final NewsService newsService;
     private final NewsAnalysisService newsAnalysisService;
     private final NewsLinkEvaluationService newsLinkEvaluationService;
+    private final AiNewsEnrichmentService aiNewsEnrichmentService;
     private final AuthenticatedUserResolver currentUser;
 
     public NewsController(NewsService newsService, NewsAnalysisService newsAnalysisService,
                           NewsLinkEvaluationService newsLinkEvaluationService,
+                          AiNewsEnrichmentService aiNewsEnrichmentService,
                           AuthenticatedUserResolver currentUser) {
         this.newsService = newsService;
         this.newsAnalysisService = newsAnalysisService;
         this.newsLinkEvaluationService = newsLinkEvaluationService;
+        this.aiNewsEnrichmentService = aiNewsEnrichmentService;
         this.currentUser = currentUser;
     }
 
@@ -65,6 +70,13 @@ public class NewsController {
     public SubmitNewsUrlResponse submitUrl(@RequestBody SubmitNewsUrlRequest request) {
         String userId = currentUser.requireUserId();
         return newsService.submitUrl(userId, request);
+    }
+
+    /** Fase IA 3: enriquecimiento estructurado con IA (temas, claims, evidencias, fact checks). */
+    @PostMapping("/{id}/ai-enrichment")
+    public AiNewsEnrichmentResponse aiEnrichment(@PathVariable String id) {
+        String userId = currentUser.requireUserId();
+        return aiNewsEnrichmentService.enrich(userId, id);
     }
 
     @DeleteMapping("/{id}")

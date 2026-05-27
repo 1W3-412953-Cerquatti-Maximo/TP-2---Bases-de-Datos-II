@@ -7,6 +7,7 @@ import { NewsAnalysis } from '../models/analysis.model';
 import { EvaluateLinkRequest, EvaluateLinkResponse } from '../models/link-evaluation.model';
 import { NewsDetail, NewsSummary } from '../models/news.model';
 import { DeleteNewsResponse, SubmitNewsUrlRequest, SubmitNewsUrlResponse } from '../models/submit-news.model';
+import { AiNewsEnrichmentResponse } from '../models/ai.model';
 
 @Injectable({ providedIn: 'root' })
 export class NewsService {
@@ -34,5 +35,10 @@ export class NewsService {
 
   delete(id: string): Observable<DeleteNewsResponse> {
     return this.http.delete<DeleteNewsResponse>(`${API_BASE_URL}/news/${id}`);
+  }
+
+  /** Fase IA 3: enriquecimiento estructurado con IA (persiste en Neo4j). */
+  enrichWithAi(id: string): Observable<AiNewsEnrichmentResponse> {
+    return this.http.post<AiNewsEnrichmentResponse>(`${API_BASE_URL}/news/${id}/ai-enrichment`, {});
   }
 }

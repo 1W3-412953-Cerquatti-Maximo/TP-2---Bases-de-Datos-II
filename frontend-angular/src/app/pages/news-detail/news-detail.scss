@@ -219,6 +219,36 @@
   margin-bottom: var(--space-2);
 }
 
+/* --- Enriquecimiento estructurado con IA (Fase IA 3) --- */
+.enrichment-section { margin-bottom: var(--space-4); }
+.enrichment-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.enrichment-head h3 { margin: 0 0 4px; }
+.enrichment-section .disclaimer { margin-bottom: var(--space-3); }
+.enrichment-success {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  background: var(--overlay-low-soft);
+  border: 1px solid var(--color-low);
+  border-radius: 14px;
+}
+.enrichment-success-head {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+.enrichment-success ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
 .ai-list,
 .ai-warnings {
   display: flex;

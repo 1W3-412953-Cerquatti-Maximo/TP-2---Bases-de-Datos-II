@@ -8,7 +8,6 @@ public record EvaluateLinkResponse(
         String title,
         String contentPreview,
         String fetchStatus,
-        AiAnalyzeNewsResponse aiAnalysis,
         CredibilityDiagnosisDto credibilityDiagnosis,
         List<String> warnings
 ) {}

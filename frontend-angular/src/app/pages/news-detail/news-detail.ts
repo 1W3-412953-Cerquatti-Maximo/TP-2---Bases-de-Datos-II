@@ -8,7 +8,7 @@ import { GraphService } from '../../core/services/graph.service';
 import { AiService } from '../../core/services/ai.service';
 import { NewsDetail as NewsDetailModel, RiskLevel } from '../../core/models/news.model';
 import { NewsAnalysis } from '../../core/models/analysis.model';
-import { AiAnalyzeNewsResponse } from '../../core/models/ai.model';
+import { AiAnalyzeNewsResponse, AiNewsEnrichmentResponse } from '../../core/models/ai.model';
 import { GraphResponse } from '../../core/models/graph.model';
 import { GraphViewer } from '../../components/graph-viewer/graph-viewer';
 
@@ -43,6 +43,11 @@ export class NewsDetail {
   // Estado abierto/cerrado de los paneles de resultado (acordeones colapsables).
   analysisOpen = signal(false);
   aiOpen = signal(false);
+
+  // Enriquecimiento estructurado con IA (Fase IA 3).
+  enriching = signal(false);
+  enrichError = signal<string | null>(null);
+  enrichResult = signal<AiNewsEnrichmentResponse | null>(null);
 
   // Eliminación de noticia.
   showDeleteConfirm = signal(false);
@@ -151,6 +156,52 @@ export class NewsDetail {
 
   toggleAiPanel(): void {
     this.aiOpen.update(open => !open);
+  }
+
+  /** Fase IA 3: pide enriquecimiento estructurado y refresca detalle + grafo. */
+  enrichWithAi(): void {
+    const d = this.detail();
+    if (!d || this.enriching()) return;
+
+    this.enriching.set(true);
+    this.enrichError.set(null);
+    this.enrichResult.set(null);
+
+    this.newsService.enrichWithAi(d.id).subscribe({
+      next: (res) => {
+        this.enriching.set(false);
+        if (res.enriched) {
+          this.enrichResult.set(res);
+          this.refreshDetailAndGraph(d.id);
+        } else {
+          this.enrichError.set(res.message ?? 'No se pudo enriquecer la noticia.');
+        }
+      },
+      error: (err) => {
+        this.enriching.set(false);
+        if (err?.status === 404) {
+          this.enrichError.set('La noticia no existe o no te pertenece.');
+        } else if (err?.status === 0) {
+          this.enrichError.set('No se pudo conectar con el backend.');
+        } else {
+          this.enrichError.set(err?.error?.message ?? err?.message ?? 'No se pudo enriquecer la noticia.');
+        }
+      }
+    });
+  }
+
+  /** Refresca detalle y grafo sin el loading de página completa (para post-enriquecimiento). */
+  private refreshDetailAndGraph(id: string): void {
+    forkJoin({
+      detail: this.newsService.getById(id),
+      graph: this.graphService.getNewsGraph(id)
+    }).subscribe({
+      next: ({ detail, graph }) => {
+        this.detail.set(detail);
+        this.graph.set(graph);
+      },
+      error: () => { /* el enriquecimiento ya se persistió; un fallo de refresco no es crítico */ }
+    });
   }
 
   requestDelete(): void {

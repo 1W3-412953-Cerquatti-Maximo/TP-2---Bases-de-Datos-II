@@ -1,29 +1,28 @@
 package com.antifakenews.service;
 
-import com.antifakenews.ai.AiAnalysisPort;
-import com.antifakenews.dto.AiAnalyzeNewsRequest;
-import com.antifakenews.dto.AiAnalyzeNewsResponse;
 import com.antifakenews.dto.CredibilityDiagnosisDto;
 import com.antifakenews.dto.EvaluateLinkRequest;
 import com.antifakenews.dto.EvaluateLinkResponse;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Evaluación principal de un link: extracción web + diagnóstico de credibilidad
+ * determinístico. NO ejecuta IA: el "Resumen asistido por IA" es una acción
+ * aparte y opcional (POST /api/ai/analyze-news-text), para no consumir tokens
+ * sin que el usuario lo pida.
+ */
 @Service
 public class NewsLinkEvaluationService {
 
     private final WebArticleExtractionService extractionService;
     private final PreliminaryCredibilityService preliminaryCredibilityService;
-    private final AiAnalysisPort aiAnalysisPort;
 
     public NewsLinkEvaluationService(WebArticleExtractionService extractionService,
-                                     PreliminaryCredibilityService preliminaryCredibilityService,
-                                     AiAnalysisPort aiAnalysisPort) {
+                                     PreliminaryCredibilityService preliminaryCredibilityService) {
         this.extractionService = extractionService;
         this.preliminaryCredibilityService = preliminaryCredibilityService;
-        this.aiAnalysisPort = aiAnalysisPort;
     }
 
     public EvaluateLinkResponse evaluateLink(EvaluateLinkRequest request) {
@@ -32,13 +31,7 @@ public class NewsLinkEvaluationService {
         }
 
         WebArticleExtractionService.ExtractedArticle article = extractionService.extract(request.url());
-        AiAnalyzeNewsResponse aiAnalysis = aiAnalysisPort.analyze(new AiAnalyzeNewsRequest(article.title(), article.content()));
         CredibilityDiagnosisDto credibilityDiagnosis = preliminaryCredibilityService.diagnose(article);
-
-        List<String> warnings = new ArrayList<>(article.warnings());
-        if (!aiAnalysis.enabled()) {
-            warnings.add("El resumen asistido por IA no está disponible actualmente; el diagnóstico principal sigue basándose en reglas locales del sistema.");
-        }
 
         return new EvaluateLinkResponse(
                 article.originalUrl(),
@@ -46,9 +39,8 @@ public class NewsLinkEvaluationService {
                 article.title(),
                 article.contentPreview(),
                 article.fetchStatus(),
-                aiAnalysis,
                 credibilityDiagnosis,
-                List.copyOf(warnings)
+                List.copyOf(article.warnings())
         );
     }
 }

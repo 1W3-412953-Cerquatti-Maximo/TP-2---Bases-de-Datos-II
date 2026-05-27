@@ -100,7 +100,7 @@ public class GraphRepository {
 
         // Evidence linked to those claims via SUPPORTED_BY / REFUTED_BY
         final String evidenceCypher = """
-                MATCH (n:News {id: $id})-[:CONTAINS]->(c:Claim)-[r:SUPPORTED_BY|REFUTED_BY]->(e:Evidence)
+                MATCH (n:News {id: $id})-[:CONTAINS]->(c:Claim)-[r:SUPPORTED_BY|REFUTED_BY|HAS_EVIDENCE_GAP]->(e:Evidence)
                 RETURN c.id AS claimId, e.id AS evidenceId, e.description AS description,
                        type(r) AS relType, properties(r) AS relProps
                 """;

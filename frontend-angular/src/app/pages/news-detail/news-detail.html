@@ -230,6 +230,56 @@
     }
   </section>
 
+  <!-- Enriquecimiento estructurado con IA (Fase IA 3) -->
+  <section class="card enrichment-section">
+    <div class="enrichment-head">
+      <div>
+        <h3>Enriquecimiento estructurado con IA</h3>
+        <p class="muted small">
+          La IA extrae temas, claims, evidencias y verificaciones asistidas del texto y los guarda en el grafo.
+        </p>
+      </div>
+      <button type="button" class="btn btn-primary" (click)="enrichWithAi()" [disabled]="enriching()">
+        {{ enriching() ? 'Enriqueciendo…' : 'Enriquecer con IA' }}
+      </button>
+    </div>
+
+    <div class="disclaimer">
+      <span class="disclaimer-icon">ℹ</span>
+      <div>
+        Los datos generados por IA son <strong>asistidos y deben ser revisados</strong>.
+        No representan una verificación externa definitiva.
+      </div>
+    </div>
+
+    @if (enriching()) {
+      <div class="loading">La IA está extrayendo temas, claims, evidencias y verificaciones…</div>
+    }
+    @if (enrichError()) {
+      <div class="error">{{ enrichError() }}</div>
+    }
+    @if (enrichResult(); as res) {
+      <div class="enrichment-success">
+        <div class="enrichment-success-head">
+          <span class="badge badge-low">Enriquecimiento completado</span>
+          <span class="badge badge-info">{{ res.provider }}</span>
+        </div>
+        <p class="muted small">
+          Temas: <strong>{{ res.topicsCreated }}</strong> ·
+          Claims: <strong>{{ res.claimsCreated }}</strong> ·
+          Evidencias: <strong>{{ res.evidencesCreated }}</strong> ·
+          Fact Checks: <strong>{{ res.factChecksCreated }}</strong>
+          @if (res.publishedAtUpdated) { · fecha de publicación actualizada }
+        </p>
+        @if (res.warnings.length > 0) {
+          <ul class="ai-warnings">
+            @for (w of res.warnings; track w) { <li>{{ w }}</li> }
+          </ul>
+        }
+      </div>
+    }
+  </section>
+
   <!-- Datos asociados (acordeones colapsables) -->
   <div class="accordions">
 

@@ -205,7 +205,7 @@ public class NewsRepository {
                   RETURN collect(DISTINCT c {.id, .text, .status}) AS claims
                 }
                 CALL (n) {
-                  OPTIONAL MATCH (n)-[:CONTAINS]->(:Claim)-[:SUPPORTED_BY|REFUTED_BY]->(e:Evidence)
+                  OPTIONAL MATCH (n)-[:CONTAINS]->(:Claim)-[:SUPPORTED_BY|REFUTED_BY|HAS_EVIDENCE_GAP]->(e:Evidence)
                   RETURN collect(DISTINCT e {.id, .description, .type, .url}) AS evidence
                 }
                 CALL (n) {

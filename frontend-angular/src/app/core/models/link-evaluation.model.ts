@@ -1,5 +1,4 @@
 import { RiskSignal } from './analysis.model';
-import { AiAnalyzeNewsResponse } from './ai.model';
 import { RiskLevel } from './news.model';
 
 export interface EvaluateLinkRequest {
@@ -21,7 +20,6 @@ export interface EvaluateLinkResponse {
   title: string;
   contentPreview: string;
   fetchStatus: string;
-  aiAnalysis: AiAnalyzeNewsResponse;
   credibilityDiagnosis: CredibilityDiagnosis;
   warnings: string[];
 }
