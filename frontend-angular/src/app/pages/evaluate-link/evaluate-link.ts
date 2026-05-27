@@ -75,11 +75,10 @@ export class EvaluateLink {
     // Reutilizamos lo ya evaluado si está disponible; si no, mandamos solo la URL.
     const evaluation = this.result();
     const diagnosis = this.diagnosis();
-    const ai = this.aiResult();
     const request: SubmitNewsUrlRequest = { url: trimmedUrl };
     if (evaluation?.title) request.title = evaluation.title;
     if (evaluation?.contentPreview) request.content = evaluation.contentPreview;
-    if (ai?.enabled && ai.suggestedTopics.length > 0) request.topicNames = ai.suggestedTopics;
+    // Los temas se derivan en el backend (TopicSuggestionService); la IA ya no los sugiere.
     // Persistimos el riesgo evaluado para que /news muestre el mismo score.
     if (diagnosis) {
       request.riskScore = diagnosis.riskScore;

@@ -9,8 +9,7 @@ import { AiService } from '../../core/services/ai.service';
 import { NewsDetail as NewsDetailModel, RiskLevel } from '../../core/models/news.model';
 import { NewsAnalysis } from '../../core/models/analysis.model';
 import { AiAnalyzeNewsResponse } from '../../core/models/ai.model';
-import { GraphNodeLabel, GraphResponse } from '../../core/models/graph.model';
-import { GRAPH_NODE_META, GRAPH_NODE_ORDER } from '../../core/graph/graph-node-meta';
+import { GraphResponse } from '../../core/models/graph.model';
 import { GraphViewer } from '../../components/graph-viewer/graph-viewer';
 
 @Component({
@@ -26,9 +25,6 @@ export class NewsDetail {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  readonly groupOrder = GRAPH_NODE_ORDER;
-  readonly groupNodeMeta = GRAPH_NODE_META;
-
   detail = signal<NewsDetailModel | null>(null);
   graph = signal<GraphResponse | null>(null);
   analysis = signal<NewsAnalysis | null>(null);
@@ -43,6 +39,10 @@ export class NewsDetail {
   aiResult = signal<AiAnalyzeNewsResponse | null>(null);
   aiLoading = signal(false);
   aiError = signal<string | null>(null);
+
+  // Estado abierto/cerrado de los paneles de resultado (acordeones colapsables).
+  analysisOpen = signal(false);
+  aiOpen = signal(false);
 
   // Eliminación de noticia.
   showDeleteConfirm = signal(false);
@@ -65,6 +65,8 @@ export class NewsDetail {
     this.analysisError.set(null);
     this.aiResult.set(null);
     this.aiError.set(null);
+    this.analysisOpen.set(false);
+    this.aiOpen.set(false);
 
     forkJoin({
       detail: this.newsService.getById(id),
@@ -96,6 +98,7 @@ export class NewsDetail {
     this.newsService.analyze(d.id).subscribe({
       next: (a) => {
         this.analysis.set(a);
+        this.analysisOpen.set(true); // abrir el acordeón al obtener resultado
         this.analysisLoading.set(false);
         // refrescamos el header con el score recién calculado
         this.detail.update(curr => curr
@@ -116,9 +119,18 @@ export class NewsDetail {
     this.aiLoading.set(true);
     this.aiError.set(null);
 
-    this.aiService.analyzeNewsText({ title: d.title, content: d.content }).subscribe({
+    this.aiService.analyzeNewsText({
+      title: d.title,
+      content: d.content,
+      url: d.url,
+      sourceName: d.source?.name ?? null,
+      topicNames: d.topics.map(t => t.name),
+      riskScore: d.riskScore,
+      riskLevel: d.riskLevel
+    }).subscribe({
       next: (res) => {
         this.aiResult.set(res);
+        this.aiOpen.set(true); // abrir el acordeón al obtener resultado
         this.aiLoading.set(false);
       },
       error: (err) => {
@@ -131,6 +143,14 @@ export class NewsDetail {
         this.aiLoading.set(false);
       }
     });
+  }
+
+  toggleAnalysisPanel(): void {
+    this.analysisOpen.update(open => !open);
+  }
+
+  toggleAiPanel(): void {
+    this.aiOpen.update(open => !open);
   }
 
   requestDelete(): void {
@@ -175,6 +195,18 @@ export class NewsDetail {
     return 'badge';
   }
 
+  /** Badge para el nivel de riesgo estimado por la IA (string, no RiskLevel oficial). */
+  aiRiskBadgeClass(level: string | null | undefined): string {
+    if (level === 'HIGH') return 'badge badge-high';
+    if (level === 'MEDIUM') return 'badge badge-medium';
+    if (level === 'LOW') return 'badge badge-low';
+    return 'badge';
+  }
+
+  aiConfidencePct(confidence: number | null | undefined): number {
+    return Math.round((confidence ?? 0) * 100);
+  }
+
   scoreBarClass(level: RiskLevel | null): string {
     if (level === 'HIGH') return 'score-bar high';
     if (level === 'MEDIUM') return 'score-bar medium';
@@ -182,11 +214,4 @@ export class NewsDetail {
     return 'score-bar';
   }
 
-  groupLabel(label: GraphNodeLabel): string {
-    return this.groupNodeMeta[label].displayName;
-  }
-
-  groupColor(label: GraphNodeLabel): string {
-    return this.groupNodeMeta[label].color;
-  }
 }

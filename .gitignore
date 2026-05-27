@@ -1,5 +1,10 @@
 # Environment secrets — NEVER commit
 .env
+.env.*
+*.API_KEY
+.enc.API_KEY
+# El template SÍ se versiona (no contiene secretos reales)
+!.env.example
 
 # Maven
 backend-java/target/
@@ -16,3 +21,4 @@ Thumbs.db
 
 # CLAUDE
 .claude
+.env.API_KEY

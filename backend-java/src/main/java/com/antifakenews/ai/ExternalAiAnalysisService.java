@@ -6,12 +6,9 @@ import com.antifakenews.dto.AiAnalyzeNewsResponse;
 import java.util.List;
 
 /**
- * Estructura preparada para un futuro proveedor de IA externo (API REST).
- *
- * No depende de ninguna API real ni obliga a tener credenciales. Si faltan
- * credenciales, falla de forma CONTROLADA (enabled=false) en lugar de romper.
- * La llamada real se implementará en una fase futura sin tocar el resto del
- * sistema.
+ * Placeholder de un proveedor externo genérico (distinto de Anthropic). Para la
+ * IA real usar AI_PROVIDER=anthropic ({@link AnthropicAiAnalysisService}).
+ * Si se selecciona "external" responde de forma controlada sin romper nada.
  */
 public class ExternalAiAnalysisService implements AiAnalysisPort {
 
@@ -25,25 +22,10 @@ public class ExternalAiAnalysisService implements AiAnalysisPort {
 
     @Override
     public AiAnalyzeNewsResponse analyze(AiAnalyzeNewsRequest request) {
-        if (apiKey == null || apiKey.isBlank()) {
-            return new AiAnalyzeNewsResponse(
-                    false,
-                    "external",
-                    "Proveedor externo seleccionado pero sin credenciales configuradas. IA desactivada de forma controlada.",
-                    List.of(),
-                    List.of(),
-                    List.of("Configurá AI_EXTERNAL_API_KEY (y AI_EXTERNAL_ENDPOINT) para habilitar el proveedor externo."));
-        }
-
-        // Punto de extensión: acá iría la llamada HTTP real al proveedor externo
-        // usando apiKey + endpoint. Se deja preparado sin implementar para no
-        // depender de una API concreta ni de credenciales reales.
-        return new AiAnalyzeNewsResponse(
-                false,
-                "external",
-                "Integración con proveedor externo aún no implementada. La estructura está lista para conectarse en una fase futura.",
-                List.of(),
-                List.of(),
-                List.of("La conexión real con el proveedor externo se implementará más adelante; el análisis determinístico del grafo no se ve afectado."));
+        String message = (apiKey == null || apiKey.isBlank())
+                ? "Proveedor externo seleccionado pero sin credenciales. Para IA real usá AI_PROVIDER=anthropic."
+                : "Proveedor externo genérico no implementado. Para IA real usá AI_PROVIDER=anthropic.";
+        return new AiAnalyzeNewsResponse(false, false, "external", null, message,
+                null, null, null, 0, List.of(), List.of(), List.of(), 0.0, null);
     }
 }

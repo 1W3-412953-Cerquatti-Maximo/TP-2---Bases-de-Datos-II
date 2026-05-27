@@ -499,6 +499,96 @@ En el frontend, la sección **"Asistente IA"** del detalle de noticia consume es
 
 ---
 
+## IA real — Conexión Anthropic (Fase IA 1)
+
+Esta fase **solo** deja probada la conexión real con Anthropic (Claude) desde el backend. **No** enriquece noticias ni toca claims/evidencias/fact checks/posts/usuarios — eso queda para fases siguientes.
+
+### Dónde va la API key
+
+La API key **solo se usa en el backend** (nunca en Angular) y **no se hardcodea**. Se lee, en este orden de prioridad:
+
+1. **Variable de entorno real** `ANTHROPIC_API_KEY` (si está definida, gana).
+2. **Archivo local** `.env.API_KEY` en la raíz del proyecto, con formato `KEY=VALUE`:
+
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+Un `EnvironmentPostProcessor` (`EnvFileEnvironmentPostProcessor`) lee ese archivo al iniciar y carga sus variables con **menor prioridad** que las del entorno. Nunca loguea los valores (solo el nombre del archivo y la cantidad). Busca `.env.API_KEY` (y `.enc.API_KEY`) en la raíz y hasta dos directorios hacia arriba, así funciona tanto si el backend corre desde la raíz como desde `backend-java/`.
+
+> `.env.API_KEY` está en `.gitignore` (junto con `.env`, `.env.*`, `*.API_KEY`, `.enc.API_KEY`). **Nunca** se commitea. El único archivo de entorno versionado es `.env.example` (sin secretos).
+
+**Carga manual alternativa** (si preferís no usar el archivo), antes de iniciar el backend:
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+```
+
+### Configuración
+
+| Variable                  | Default                  | Notas                                          |
+| ------------------------- | ------------------------ | ---------------------------------------------- |
+| `AI_ENABLED`              | `false`                  | `true` para habilitar la IA                    |
+| `AI_PROVIDER`             | `disabled`               | `anthropic` para la conexión real; `mock` simula |
+| `ANTHROPIC_API_KEY`       | *(vacío)*                | desde entorno o `.env.API_KEY`                 |
+| `ANTHROPIC_MODEL`         | `claude-haiku-4-5`       | configurable (override por variable)           |
+| `ANTHROPIC_BASE_URL`      | `https://api.anthropic.com` |                                             |
+| `ANTHROPIC_VERSION`       | `2023-06-01`             | header `anthropic-version`                     |
+| `ANTHROPIC_MAX_TOKENS`    | `512`                    |                                                |
+| `ANTHROPIC_TIMEOUT_SECONDS` | `25`                   | timeout de la llamada                          |
+
+**Activar Anthropic** (PowerShell, desde `backend-java/`):
+
+```powershell
+$env:AI_ENABLED = "true"
+$env:AI_PROVIDER = "anthropic"
+# ANTHROPIC_API_KEY se toma de .env.API_KEY (raíz) o del entorno
+# luego ejecutar el backend (Run en IntelliJ o mvn spring-boot:run)
+```
+
+Si falta la key con `AI_PROVIDER=anthropic`, el backend **igual arranca**: el error se devuelve de forma controlada recién al llamar el endpoint (no crashea la app).
+
+### Endpoint de diagnóstico
+
+`GET /api/ai/health` — **protegido por Bearer token** (`AuthenticatedUserResolver`). También existe `POST /api/ai/test` con body opcional `{ "prompt": "..." }`.
+
+Implementa el HttpClient nativo de Java 21 (sin SDK) contra `POST https://api.anthropic.com/v1/messages` con headers `x-api-key`, `anthropic-version`, `content-type`. Arquitectura modular: interfaz `AiProvider` con `MockAiProvider` y `AnthropicAiProvider`, seleccionados por `AiProviderConfig`.
+
+```bash
+# (con token de login demo)
+curl http://localhost:8080/api/ai/health -H "Authorization: Bearer <TOKEN>"
+```
+
+**Conexión OK** (`AI_ENABLED=true`, `AI_PROVIDER=anthropic`, key válida):
+
+```json
+{
+  "enabled": true,
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5",
+  "configured": true,
+  "ok": true,
+  "message": "La conexión IA de NexoVeraz funciona correctamente.",
+  "usage": { "inputTokens": 25, "outputTokens": 18 }
+}
+```
+
+**Falta la API key:**
+
+```json
+{ "enabled": true, "provider": "anthropic", "model": "claude-haiku-4-5", "configured": false, "ok": false, "message": "ANTHROPIC_API_KEY no está configurada." }
+```
+
+**IA desactivada** (`AI_ENABLED=false`):
+
+```json
+{ "enabled": false, "provider": "mock", "configured": false, "ok": true, "message": "La IA está desactivada." }
+```
+
+Errores controlados (nunca devuelve stacktrace): `401/403` autenticación, `429` rate limit, `400` request/modelo inválido, `5xx` error del proveedor, timeout.
+
+---
+
 ## Autenticación demo (Fase 7.1)
 
 Auth **para demo académica**, no producción. Login/registro con token simple.

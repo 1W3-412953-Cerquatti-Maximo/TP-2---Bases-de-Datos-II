@@ -162,44 +162,61 @@
           <p class="muted small">Salida complementaria. No reemplaza el diagnóstico principal.</p>
         </div>
         @if (aiResult(); as ai) {
-          <span class="badge" [class.badge-info]="ai.enabled">{{ ai.enabled ? 'IA' : 'IA desactivada' }}</span>
+          <span class="badge" [class.badge-info]="ai.enabled && ai.ok">
+            {{ ai.enabled ? (ai.provider === 'anthropic' ? 'Anthropic' : 'IA') : 'IA desactivada' }}
+          </span>
         }
       </div>
 
       @if (aiResult(); as ai) {
-        <p>{{ ai.summary }}</p>
+        @if (!ai.enabled || !ai.ok) {
+          <p class="muted small">{{ ai.message }}</p>
+        } @else {
+          <p>{{ ai.summary }}</p>
 
-        @if (ai.suggestedTopics.length > 0) {
-          <div class="subsection">
-            <h4>Temas sugeridos</h4>
-            <div>
-              @for (topic of ai.suggestedTopics; track topic) {
-                <span class="chip">{{ topic }}</span>
-              }
+          @if (ai.riskAnalysis) {
+            <div class="subsection">
+              <h4>Análisis de riesgo IA</h4>
+              <p class="muted small">
+                <span [class]="riskBadgeClass(ai.aiRiskLevel ?? null)">{{ ai.aiRiskLevel }}</span>
+                · score IA {{ ai.aiRiskScore }}/100
+              </p>
+              <p>{{ ai.riskAnalysis }}</p>
             </div>
-          </div>
-        }
+          }
 
-        @if (ai.suggestedClaims.length > 0) {
-          <div class="subsection">
-            <h4>Claims sugeridos</h4>
-            <ul class="bullet-list">
-              @for (claim of ai.suggestedClaims; track claim) {
-                <li>{{ claim }}</li>
-              }
-            </ul>
-          </div>
-        }
+          @if (ai.warningSignals.length > 0) {
+            <div class="subsection">
+              <h4>Señales de alerta</h4>
+              <ul class="bullet-list warnings-list">
+                @for (signal of ai.warningSignals; track signal) {
+                  <li>{{ signal }}</li>
+                }
+              </ul>
+            </div>
+          }
 
-        @if (ai.warnings.length > 0) {
-          <div class="subsection">
-            <h4>Advertencias del resumen</h4>
-            <ul class="bullet-list warnings-list">
-              @for (warning of ai.warnings; track warning) {
-                <li>{{ warning }}</li>
-              }
-            </ul>
-          </div>
+          @if (ai.recommendations.length > 0) {
+            <div class="subsection">
+              <h4>Recomendaciones</h4>
+              <ul class="bullet-list">
+                @for (rec of ai.recommendations; track rec) {
+                  <li>{{ rec }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (ai.limitations.length > 0) {
+            <div class="subsection">
+              <h4>Limitaciones</h4>
+              <ul class="bullet-list">
+                @for (lim of ai.limitations; track lim) {
+                  <li>{{ lim }}</li>
+                }
+              </ul>
+            </div>
+          }
         }
       }
     </section>

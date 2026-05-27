@@ -76,36 +76,50 @@
     }
 
     @if (analysis(); as a) {
-      <div class="analysis-body">
-        <div class="analysis-summary" [attr.data-level]="a.riskLevel">
-          <div class="summary-top">
-            <div class="summary-score">
-              <span class="summary-score-value mono">{{ a.riskScore }}</span>
-              <span class="summary-score-max muted">/ 100</span>
-            </div>
-            <span [class]="riskBadgeClass(a.riskLevel)">{{ a.riskLevel }}</span>
-          </div>
-          <div [class]="scoreBarClass(a.riskLevel)">
-            <span [style.width.%]="a.riskScore"></span>
-          </div>
-          <p class="summary-text">{{ a.summary }}</p>
-        </div>
+      <div class="result-accordion" [class.open]="analysisOpen()">
+        <button
+          type="button"
+          class="result-acc-head"
+          (click)="toggleAnalysisPanel()"
+          [attr.aria-expanded]="analysisOpen()">
+          <span class="result-acc-title">Resultado del análisis de riesgo</span>
+          <span [class]="riskBadgeClass(a.riskLevel)">Calculado · {{ a.riskLevel }}</span>
+          <span class="result-acc-chevron" aria-hidden="true">▾</span>
+        </button>
 
-        <h4>Señales detectadas ({{ a.signals.length }})</h4>
-        @if (a.signals.length === 0) {
-          <p class="muted small">No se detectaron señales de riesgo en el grafo.</p>
-        } @else {
-          <ul class="signals">
-            @for (s of a.signals; track s.code) {
-              <li class="signal">
-                <div class="signal-points">+{{ s.points }}</div>
-                <div class="signal-body">
-                  <div class="mono signal-code">{{ s.code }}</div>
-                  <div class="muted small">{{ s.description }}</div>
+        @if (analysisOpen()) {
+          <div class="result-acc-body">
+            <div class="analysis-summary" [attr.data-level]="a.riskLevel">
+              <div class="summary-top">
+                <div class="summary-score">
+                  <span class="summary-score-value mono">{{ a.riskScore }}</span>
+                  <span class="summary-score-max muted">/ 100</span>
                 </div>
-              </li>
+                <span [class]="riskBadgeClass(a.riskLevel)">{{ a.riskLevel }}</span>
+              </div>
+              <div [class]="scoreBarClass(a.riskLevel)">
+                <span [style.width.%]="a.riskScore"></span>
+              </div>
+              <p class="summary-text">{{ a.summary }}</p>
+            </div>
+
+            <h4>Señales detectadas ({{ a.signals.length }})</h4>
+            @if (a.signals.length === 0) {
+              <p class="muted small">No se detectaron señales de riesgo en el grafo.</p>
+            } @else {
+              <ul class="signals">
+                @for (s of a.signals; track s.code) {
+                  <li class="signal">
+                    <div class="signal-points">+{{ s.points }}</div>
+                    <div class="signal-body">
+                      <div class="mono signal-code">{{ s.code }}</div>
+                      <div class="muted small">{{ s.description }}</div>
+                    </div>
+                  </li>
+                }
+              </ul>
             }
-          </ul>
+          </div>
         }
       </div>
     }
@@ -117,8 +131,8 @@
       <div>
         <h3>Asistente IA <span class="badge badge-info">opcional</span></h3>
         <p class="muted small">
-          Resume y sugiere claims/temas a partir del texto. <strong>No</strong> decide falsedad
-          ni modifica el <code>riskScore</code> determinístico del grafo.
+          Resumen y análisis de riesgo asistido por IA a partir del texto. <strong>No</strong> decide
+          falsedad ni modifica el <code>riskScore</code> determinístico del grafo.
         </p>
       </div>
       <button
@@ -135,61 +149,84 @@
     }
 
     @if (aiResult(); as ai) {
-      @if (!ai.enabled) {
-        <div class="ai-disabled">
-          <span class="badge">IA desactivada</span>
-          <p class="muted small">{{ ai.summary }}</p>
-          @if (ai.warnings.length > 0) {
-            <ul class="ai-warnings">
-              @for (w of ai.warnings; track w) { <li>{{ w }}</li> }
-            </ul>
-          }
-        </div>
-      } @else {
-        <div class="ai-body">
-          <div class="ai-provider tiny muted">
-            proveedor: <span class="mono">IA</span>
-          </div>
+      <div class="result-accordion" [class.open]="aiOpen()">
+        <button
+          type="button"
+          class="result-acc-head"
+          (click)="toggleAiPanel()"
+          [attr.aria-expanded]="aiOpen()">
+          <span class="result-acc-title">Resultado del asistente IA</span>
+          <span class="badge" [class.badge-info]="ai.enabled">{{ ai.enabled ? 'IA' : 'IA desactivada' }}</span>
+          <span class="result-acc-chevron" aria-hidden="true">▾</span>
+        </button>
 
-          <div class="ai-block">
-            <h4>Resumen</h4>
-            <p>{{ ai.summary }}</p>
-          </div>
-
-          @if (ai.suggestedTopics.length > 0) {
-            <div class="ai-block">
-              <h4>Temas sugeridos</h4>
-              <div>
-                @for (t of ai.suggestedTopics; track t) {
-                  <span class="chip">{{ t }}</span>
-                }
+        @if (aiOpen()) {
+          <div class="result-acc-body">
+            @if (!ai.enabled) {
+              <div class="ai-disabled">
+                <span class="badge">IA desactivada</span>
+                <p class="muted small">{{ ai.message }}</p>
               </div>
-            </div>
-          }
+            } @else if (!ai.ok) {
+              <div class="error">{{ ai.message }}</div>
+            } @else {
+              <div class="ai-body">
+                <div class="ai-provider tiny muted">
+                  proveedor: <span class="mono">{{ ai.provider }}</span>
+                  @if (ai.model) { · modelo: <span class="mono">{{ ai.model }}</span> }
+                </div>
 
-          @if (ai.suggestedClaims.length > 0) {
-            <div class="ai-block">
-              <h4>Claims sugeridos</h4>
-              <ul class="ai-list">
-                @for (c of ai.suggestedClaims; track c) { <li>{{ c }}</li> }
-              </ul>
-            </div>
-          }
+                <div class="ai-block">
+                  <h4>Resumen</h4>
+                  <p>{{ ai.summary }}</p>
+                </div>
 
-          @if (ai.warnings.length > 0) {
-            <div class="ai-block">
-              <h4>Advertencias preliminares</h4>
-              <ul class="ai-warnings">
-                @for (w of ai.warnings; track w) { <li>{{ w }}</li> }
-              </ul>
-            </div>
-          }
+                <div class="ai-block">
+                  <h4>Análisis de riesgo IA</h4>
+                  <div class="ai-risk-head">
+                    <span [class]="aiRiskBadgeClass(ai.aiRiskLevel)">{{ ai.aiRiskLevel }}</span>
+                    <span class="mono small">score IA: {{ ai.aiRiskScore }}/100</span>
+                    <span class="muted small">· confianza {{ aiConfidencePct(ai.confidence) }}%</span>
+                  </div>
+                  <p>{{ ai.riskAnalysis }}</p>
+                </div>
 
-          <p class="ai-note tiny muted">
-            Sugerencias generadas por IA. No se guardan automáticamente ni alteran el análisis del grafo.
-          </p>
-        </div>
-      }
+                @if (ai.warningSignals.length > 0) {
+                  <div class="ai-block">
+                    <h4>Señales de alerta</h4>
+                    <ul class="ai-warnings">
+                      @for (s of ai.warningSignals; track s) { <li>{{ s }}</li> }
+                    </ul>
+                  </div>
+                }
+
+                @if (ai.recommendations.length > 0) {
+                  <div class="ai-block">
+                    <h4>Recomendaciones</h4>
+                    <ul class="ai-list">
+                      @for (r of ai.recommendations; track r) { <li>{{ r }}</li> }
+                    </ul>
+                  </div>
+                }
+
+                @if (ai.limitations.length > 0) {
+                  <div class="ai-block">
+                    <h4>Limitaciones</h4>
+                    <ul class="ai-list">
+                      @for (l of ai.limitations; track l) { <li>{{ l }}</li> }
+                    </ul>
+                  </div>
+                }
+
+                <p class="ai-note tiny muted">
+                  Este análisis fue generado por IA a partir del texto disponible. No reemplaza el cálculo
+                  de riesgo del sistema ni una verificación externa.
+                </p>
+              </div>
+            }
+          </div>
+        }
+      </div>
     }
   </section>
 
@@ -329,29 +366,9 @@
     </details>
   </div>
 
-  <!-- Grafo de relaciones -->
+  <!-- Grafo de relaciones (título, contadores y detalle dentro de la card del componente) -->
   @if (graph(); as g) {
     <section class="graph-section">
-      <div class="graph-head">
-        <h2>Grafo de relaciones</h2>
-        <div class="graph-counts">
-          <span class="count-pill"><strong>{{ g.nodes.length }}</strong> nodos</span>
-          <span class="count-pill"><strong>{{ g.edges.length }}</strong> relaciones</span>
-        </div>
-      </div>
-      <p class="muted small graph-note">
-        Reflejo de cómo Neo4j conecta esta noticia con el resto de las entidades.
-        Cada color representa un tipo de nodo del grafo.
-      </p>
-
-      <div class="graph-legend">
-        @for (label of groupOrder; track label) {
-          <span class="legend-item">
-            <span class="legend-dot" [style.background]="groupColor(label)"></span>{{ groupLabel(label) }}
-          </span>
-        }
-      </div>
-
       <nv-graph-viewer [graph]="g"></nv-graph-viewer>
     </section>
   }

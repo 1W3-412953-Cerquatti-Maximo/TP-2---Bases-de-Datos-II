@@ -66,6 +66,13 @@ export class GraphViewer implements AfterViewInit, OnChanges, OnDestroy {
     this.destroyGraph();
   }
 
+  /** Botón "Centrar grafo": reencuadra todos los nodos con animación suave. */
+  recenter(): void {
+    const cy = this.cy;
+    if (!cy) return;
+    cy.animate({ fit: { eles: cy.elements(), padding: 32 }, duration: 350, easing: 'ease-out' });
+  }
+
   get fallbackGroups(): Array<{ label: string; displayName: string; color: string; nodes: GraphNode[] }> {
     const graph = this.graph;
     if (!graph) return [];

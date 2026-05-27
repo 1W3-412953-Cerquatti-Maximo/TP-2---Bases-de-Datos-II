@@ -83,12 +83,6 @@
   flex-shrink: 0;
 }
 
-.analysis-body {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
 .analysis-summary {
   margin-bottom: var(--space-6);
   padding: var(--space-5);
@@ -217,6 +211,13 @@
 .ai-provider { margin-bottom: var(--space-3); }
 .ai-block { margin-bottom: var(--space-4); }
 .ai-block h4 { margin: 0 0 var(--space-2); color: var(--color-accent); }
+.ai-risk-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
 
 .ai-list,
 .ai-warnings {
@@ -233,6 +234,58 @@
   margin: 0;
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
+}
+
+/* --- Acordeón de resultado (Análisis de riesgo / Asistente IA) --- */
+.result-accordion {
+  margin-top: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.result-acc-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.15s ease;
+}
+.result-acc-head:hover { background: var(--overlay-accent-soft); }
+.result-acc-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--fs-body);
+}
+.result-acc-chevron {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+.result-accordion.open .result-acc-chevron { transform: rotate(180deg); }
+
+.result-acc-body {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  animation: result-acc-in 160ms ease;
+}
+/* Evita el doble borde/padding superior cuando .ai-body va dentro del acordeón. */
+.result-acc-body .ai-body {
+  padding-top: 0;
+  border-top: none;
+}
+
+@keyframes result-acc-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* --- Acordeones de datos asociados --- */
@@ -316,66 +369,6 @@
 }
 
 .graph-section { margin-top: var(--space-8); }
-
-.graph-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
-}
-
-.graph-head h2 { margin: 0; }
-
-.graph-counts {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.count-pill {
-  padding: 8px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: var(--color-muted);
-  font-size: var(--fs-small);
-}
-
-.count-pill strong {
-  color: var(--color-text);
-  font-family: var(--font-mono);
-}
-
-.graph-note { margin-bottom: var(--space-4); }
-
-.graph-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: var(--color-muted);
-  font-size: var(--fs-tiny);
-}
-
-.legend-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  background: var(--color-accent);
-  border-radius: 3px;
-}
 
 nv-graph-viewer {
   display: block;

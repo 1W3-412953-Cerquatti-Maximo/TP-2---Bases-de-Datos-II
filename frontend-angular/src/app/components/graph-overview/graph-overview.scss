@@ -37,7 +37,11 @@
 .graph-host {
   width: 100%;
   height: 560px;
-  background: var(--color-surface);
+  /* Fondo oscuro con leve iluminación cyan/turquesa arriba (igual que el grafo
+     de relaciones de noticia): se ve más profundo y tecnológico, sin brillar de más. */
+  background:
+    radial-gradient(circle at top, var(--overlay-primary-soft), transparent 55%),
+    var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
