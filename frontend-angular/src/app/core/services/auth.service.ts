@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../api.config';
 import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest, ThemePreference } from '../models/auth.model';
@@ -17,10 +17,18 @@ export class AuthService {
   readonly currentUser = this.currentUserSig.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserSig() !== null);
 
+  // true mientras se valida la sesión al cargar la app (hay token pero /auth/me aún no respondió).
+  private restoringSig = signal<boolean>(false);
+  readonly restoring = this.restoringSig.asReadonly();
+
+  // Restauración en curso compartida: un único /auth/me reutilizado por el guard y el arranque.
+  private restore$: Observable<boolean> | null = null;
+
   constructor() {
-    // Restaurar sesión si hay token guardado.
+    // Si hay token guardado, arrancamos la restauración de sesión apenas carga la app.
     if (this.getToken()) {
-      this.loadCurrentUser().subscribe({ error: () => this.clearSession() });
+      this.restoringSig.set(true);
+      this.ensureRestored().subscribe();
     }
   }
 
@@ -37,6 +45,41 @@ export class AuthService {
   loadCurrentUser(): Observable<CurrentUser> {
     return this.http.get<CurrentUser>(`${API_BASE_URL}/auth/me`)
       .pipe(tap(user => this.applyUser(user)));
+  }
+
+  /**
+   * Garantiza que la sesión esté restaurada antes de activar rutas protegidas.
+   * - Sin token → false (el guard redirige a /login).
+   * - Usuario ya cargado → true.
+   * - Con token → valida contra /auth/me: 200 → true; 401 → limpia sesión y false;
+   *   error transitorio (red/500/…) → true (se conserva el token, NO se expulsa al usuario).
+   * Reutiliza el request en vuelo (shareReplay) para no llamar /auth/me varias veces.
+   */
+  ensureRestored(): Observable<boolean> {
+    if (this.isAuthenticated()) return of(true);
+    if (!this.getToken()) return of(false);
+
+    if (!this.restore$) {
+      this.restoringSig.set(true);
+      this.restore$ = this.loadCurrentUser().pipe(
+        map(() => true),
+        catchError((err: HttpErrorResponse) => {
+          if (err.status === 401) {
+            // Token inválido o expirado: única situación en la que cerramos sesión al refrescar.
+            this.clearSession();
+            return of(false);
+          }
+          // Error transitorio: mantenemos la sesión y dejamos pasar (no redirigir a /login).
+          return of(true);
+        }),
+        finalize(() => {
+          this.restoringSig.set(false);
+          this.restore$ = null;
+        }),
+        shareReplay(1)
+      );
+    }
+    return this.restore$;
   }
 
   updateThemePreference(theme: ThemePreference): Observable<CurrentUser> {

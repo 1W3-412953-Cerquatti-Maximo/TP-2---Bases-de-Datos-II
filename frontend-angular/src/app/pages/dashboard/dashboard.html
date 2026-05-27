@@ -35,22 +35,30 @@
 
   <section class="charts">
     <div class="card chart-card">
-      <nv-donut-chart
+      <nv-chart-doughnut
         title="Distribución de riesgo"
         centerLabel="Noticias"
         tooltipUnit="noticias"
         [items]="riskSegments()"
-        emptyMessage="Todavía no tenés noticias para graficar." />
+        emptyMessage="Todavía no hay datos suficientes para mostrar este gráfico." />
     </div>
 
     <div class="card chart-card">
-      <nv-donut-chart
+      <nv-chart-doughnut
         title="Confiabilidad de fuentes"
         centerLabel="Fuentes"
         tooltipUnit="fuentes"
         [items]="sourceSegments()"
-        emptyMessage="Todavía no tenés fuentes para graficar." />
+        emptyMessage="Todavía no hay datos suficientes para mostrar este gráfico." />
     </div>
+  </section>
+
+  <!-- Fila 3: Cantidad de noticias por tema y riesgo (stacked bar) -->
+  <section class="card topic-risk-card">
+    <nv-chart-stacked-bar
+      title="Cantidad de noticias por tema y riesgo"
+      [data]="topicRiskDistribution()"
+      emptyMessage="Todavía no hay datos suficientes para mostrar este gráfico." />
   </section>
 
   <!-- Fila 2: Top temas con mayor riesgo + Señales de riesgo más frecuentes -->
@@ -104,64 +112,8 @@
     </div>
   </section>
 
-  <!-- Fila 3: Evolución temporal de noticias por riesgo -->
-  <section class="card timeline-card">
-    <h3>Evolución temporal de noticias por riesgo</h3>
-    @if (timelineBars().length === 0) {
-      <p class="card-empty muted">Todavía no hay evolución temporal para mostrar.</p>
-    } @else {
-      <div class="timeline-chart">
-        @for (b of timelineBars(); track b.label) {
-          <div class="tl-col">
-            <div class="tl-stack" [attr.title]="b.label + ': ' + b.total + ' (B' + b.low + ' M' + b.medium + ' A' + b.high + ')'">
-              @if (b.highPct > 0) { <div class="tl-seg seg-high" [style.height.%]="b.highPct"></div> }
-              @if (b.mediumPct > 0) { <div class="tl-seg seg-medium" [style.height.%]="b.mediumPct"></div> }
-              @if (b.lowPct > 0) { <div class="tl-seg seg-low" [style.height.%]="b.lowPct"></div> }
-            </div>
-            <div class="tl-label">{{ b.label }}</div>
-          </div>
-        }
-      </div>
-      <div class="timeline-legend">
-        <span class="tl-lg"><span class="tl-dot seg-low"></span> Bajo</span>
-        <span class="tl-lg"><span class="tl-dot seg-medium"></span> Medio</span>
-        <span class="tl-lg"><span class="tl-dot seg-high"></span> Alto</span>
-      </div>
-    }
-  </section>
-
-  <!-- Fila 4: Mini grafo / resumen de relaciones -->
-  <section class="card graph-card">
-    <div class="graph-card-head">
-      <h3>Resumen del grafo</h3>
-      @if (graph(); as g) {
-        <span class="graph-rels muted small">{{ g.totalRelationships }} relaciones</span>
-      }
-    </div>
-    @if (!graphHasData()) {
-      <p class="card-empty muted">Todavía no hay grafo para mostrar.</p>
-    } @else {
-      <div class="graph-mini">
-        <svg [attr.viewBox]="'0 0 ' + graphView.w + ' ' + graphView.h" class="graph-svg" role="img" aria-label="Resumen del subgrafo del usuario">
-          @if (graphCenter(); as c) {
-            @for (o of graphOuter(); track o.type) {
-              <line class="graph-edge" [attr.x1]="c.x" [attr.y1]="c.y" [attr.x2]="o.x" [attr.y2]="o.y" />
-            }
-            @for (o of graphOuter(); track o.type) {
-              <g>
-                <circle class="gn-circle" [attr.cx]="o.x" [attr.cy]="o.y" r="26" [style.fill]="o.color" />
-                <text class="gn-count" [attr.x]="o.x" [attr.y]="o.y">{{ o.count }}</text>
-                <text class="gn-label" [attr.x]="o.x" [attr.y]="o.y + 42">{{ o.label }}</text>
-              </g>
-            }
-            <g>
-              <circle class="gn-circle" [attr.cx]="c.x" [attr.cy]="c.y" r="36" [style.fill]="c.color" />
-              <text class="gn-count center" [attr.x]="c.x" [attr.y]="c.y - 4">{{ c.count }}</text>
-              <text class="gn-center-label" [attr.x]="c.x" [attr.y]="c.y + 14">{{ c.label }}</text>
-            </g>
-          }
-        </svg>
-      </div>
-    }
+  <!-- Fila 4: Mapa general del grafo (interactivo, Cytoscape) -->
+  <section class="card graph-overview-card">
+    <nv-graph-overview [data]="graph()" />
   </section>
 }

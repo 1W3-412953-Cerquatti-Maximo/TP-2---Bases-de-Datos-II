@@ -25,14 +25,6 @@ export interface RiskSignalSummaryItem {
   count: number;
 }
 
-export interface NewsTimelineItem {
-  date: string;
-  low: number;
-  medium: number;
-  high: number;
-  total: number;
-}
-
 export interface GraphSummaryNode {
   label: string;
   count: number;

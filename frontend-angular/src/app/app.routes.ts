@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { Shell } from './layout/shell';
-import { Dashboard } from './pages/dashboard/dashboard';
 import { NewsList } from './pages/news-list/news-list';
 import { NewsDetail } from './pages/news-detail/news-detail';
 import { Sources } from './pages/sources/sources';
@@ -22,7 +21,13 @@ export const routes: Routes = [
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard', component: Dashboard, title: 'NexoVeraz · Dashboard' },
+      {
+        // Lazy: el dashboard arrastra Chart.js, así que vive en su propio chunk
+        // y no infla el bundle inicial (ni la pantalla de login).
+        path: 'dashboard',
+        loadComponent: () => import('./pages/dashboard/dashboard').then(m => m.Dashboard),
+        title: 'NexoVeraz · Dashboard'
+      },
       { path: 'news', component: NewsList, title: 'NexoVeraz · Noticias' },
       { path: 'news/:id', component: NewsDetail, title: 'NexoVeraz · Detalle de noticia' },
       { path: 'evaluate-link', component: EvaluateLink, title: 'NexoVeraz · Evaluar link' },

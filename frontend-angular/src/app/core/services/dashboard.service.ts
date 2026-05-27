@@ -6,7 +6,6 @@ import { API_BASE_URL } from '../api.config';
 import {
   DashboardSummary,
   GraphSummaryResponse,
-  NewsTimelineItem,
   RiskSignalSummaryItem,
   TopicRiskRankingItem
 } from '../models/dashboard.model';
@@ -25,10 +24,6 @@ export class DashboardService {
 
   getRiskSignals(): Observable<RiskSignalSummaryItem[]> {
     return this.http.get<RiskSignalSummaryItem[]>(`${API_BASE_URL}/dashboard/risk-signals`);
-  }
-
-  getNewsTimeline(): Observable<NewsTimelineItem[]> {
-    return this.http.get<NewsTimelineItem[]>(`${API_BASE_URL}/dashboard/news-timeline`);
   }
 
   getGraphSummary(): Observable<GraphSummaryResponse> {

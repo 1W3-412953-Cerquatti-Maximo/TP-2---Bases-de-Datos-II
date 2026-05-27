@@ -1,0 +1,13 @@
+<div class="chart-block">
+  @if (title()) {
+    <h3 class="chart-title">{{ title() }}</h3>
+  }
+
+  @if (hasData()) {
+    <div class="canvas-box">
+      <canvas #canvas></canvas>
+    </div>
+  } @else {
+    <p class="chart-empty muted">{{ emptyMessage() }}</p>
+  }
+</div>

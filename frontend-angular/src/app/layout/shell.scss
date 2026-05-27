@@ -5,6 +5,15 @@
 }
 
 .sidebar {
+  /* Acompaña al usuario durante el scroll: queda pegado arriba y ocupa el alto
+     de la pantalla. align-self: start evita que el grid lo estire a la altura del
+     contenido (requisito para que sticky tenga efecto). */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 20;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   padding: var(--space-6) var(--space-5);

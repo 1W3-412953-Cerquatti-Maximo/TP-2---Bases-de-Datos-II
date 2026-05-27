@@ -1,0 +1,62 @@
+<div class="overview">
+  <div class="overview-head">
+    <div>
+      <h3>Mapa general del grafo</h3>
+      <p class="muted small">Vista agregada de cómo se conectan las entidades analizadas por NexoVeraz.</p>
+    </div>
+    @if (hasData()) {
+      <button type="button" class="btn btn-ghost recenter-btn" (click)="recenter()">Centrar grafo</button>
+    }
+  </div>
+
+  @if (!hasData()) {
+    <p class="card-empty muted">Todavía no hay datos suficientes para construir el mapa del grafo.</p>
+  } @else {
+    <div class="overview-body">
+      <div class="graph-area">
+        <div #graphHost class="graph-host"></div>
+
+        @if (renderError(); as err) {
+          <p class="render-error">{{ err }}</p>
+        }
+
+        <div class="graph-legend">
+          @for (item of legend(); track item.type) {
+            <span class="legend-item">
+              <span class="legend-dot" [style.background]="item.color"></span>{{ item.label }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <aside class="detail-panel">
+        <h4>Detalle del nodo</h4>
+
+        @if (selectedNode(); as node) {
+          <div class="detail-content">
+            <span class="detail-type" [style.background]="node.color">{{ node.label }}</span>
+            <div class="detail-count">
+              <strong>{{ node.count }}</strong> {{ node.count === 1 ? 'entidad' : 'entidades' }}
+            </div>
+            <p class="detail-desc">{{ node.description }}</p>
+
+            @if (node.relations.length > 0) {
+              <div class="detail-relations">
+                <span class="rel-title muted small">Relaciones principales</span>
+                <div class="rel-chips">
+                  @for (rel of node.relations; track rel) {
+                    <span class="chip">{{ rel }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="muted detail-empty">Seleccioná un nodo para ver su detalle.</p>
+        }
+
+        <div class="detail-foot muted small">{{ totalRelationships() }} relaciones en total</div>
+      </aside>
+    </div>
+  }
+</div>

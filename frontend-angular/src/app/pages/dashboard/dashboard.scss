@@ -59,13 +59,6 @@
 
 .chart-card {
   padding: clamp(26px, 2.2vw, 38px);
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-}
-
-.chart-card nv-donut-chart {
-  width: 100%;
 }
 
 @media (max-width: 480px) {
@@ -136,124 +129,11 @@
   background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
 }
 
-/* --- Evolución temporal (barras apiladas) --- */
-.timeline-card { margin-bottom: var(--space-4); }
-.timeline-card h3 {
-  margin: 0 0 var(--space-5);
-  font-size: var(--fs-h4);
-}
-.timeline-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  height: 200px;
-  padding-bottom: var(--space-2);
-  overflow-x: auto;
-}
-.tl-col {
-  flex: 1 1 0;
-  min-width: 38px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  height: 100%;
-}
-.tl-stack {
-  width: 100%;
-  max-width: 46px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 2px;
-}
-.tl-seg {
-  width: 100%;
-  border-radius: 4px;
-  min-height: 3px;
-  transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.tl-label {
-  font-size: var(--fs-tiny);
-  color: var(--color-muted);
-  font-variant-numeric: tabular-nums;
-}
-.seg-low    { background: var(--color-low); }
-.seg-medium { background: var(--color-medium); }
-.seg-high   { background: var(--color-high); }
+/* --- Cantidad de noticias por tema y riesgo (stacked bar Chart.js) --- */
+.topic-risk-card { margin-bottom: var(--space-4); }
 
-.timeline-legend {
-  display: flex;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
-}
-.tl-lg {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-small);
-  color: var(--color-muted);
-}
-.tl-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-}
-
-/* --- Mini grafo / resumen de relaciones --- */
-.graph-card-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.graph-card-head h3 { margin: 0; font-size: var(--fs-h4); }
-
-.graph-mini {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-.graph-svg {
-  width: 100%;
-  max-width: 560px;
-  height: auto;
-}
-.graph-edge {
-  stroke: var(--color-border);
-  stroke-width: 2;
-}
-.gn-circle {
-  stroke: var(--color-card);
-  stroke-width: 3;
-}
-.gn-count {
-  fill: #06121F;
-  font-weight: 800;
-  font-size: 15px;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-.gn-count.center {
-  font-size: 22px;
-  dominant-baseline: auto;
-}
-.gn-center-label {
-  fill: #06121F;
-  font-weight: 700;
-  font-size: 11px;
-  text-anchor: middle;
-}
-.gn-label {
-  fill: var(--color-muted);
-  font-size: 12px;
-  font-weight: 600;
-  text-anchor: middle;
-}
+/* --- Mapa general del grafo (la estética vive en graph-overview.scss) --- */
+.graph-overview-card { margin-bottom: var(--space-4); }
 
 @media (max-width: 700px) {
   .intro-head { align-items: flex-start; }

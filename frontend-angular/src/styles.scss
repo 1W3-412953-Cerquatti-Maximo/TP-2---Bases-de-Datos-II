@@ -25,6 +25,11 @@
   --overlay-high-soft: rgba(239, 68, 68, 0.14);
   --focus-ring: rgba(56, 189, 248, 0.22);
   --table-row-hover: rgba(56, 189, 248, 0.06);
+  /* Scrollbars (modo oscuro): track casi como el fondo, thumb azul grisáceo,
+     hover turquesa NexoVeraz. */
+  --scrollbar-track: #0B1524;
+  --scrollbar-thumb: #2B3B54;
+  --scrollbar-thumb-hover: #14B8A6;
 
   --radius:    12px;
   --radius-sm: 8px;
@@ -78,6 +83,10 @@
   --focus-ring: rgba(2, 132, 199, 0.18);
   --table-row-hover: rgba(2, 132, 199, 0.06);
   --shadow-card: 0 18px 36px rgba(15, 23, 42, 0.08);
+  /* Scrollbars (modo claro): se mantienen claras y sutiles. */
+  --scrollbar-track: #E3EAF2;
+  --scrollbar-thumb: #C2CDDA;
+  --scrollbar-thumb-hover: #94A3B8;
 }
 
 * { box-sizing: border-box; }
@@ -354,4 +363,38 @@ tbody tr.clickable { cursor: pointer; }
   .kv { grid-template-columns: 1fr; }
 
   th, td { padding: 12px 14px; }
+}
+
+/* ============================================================
+   Scrollbars — coherentes con el tema (variables --scrollbar-*).
+   Cubre el scroll de la página y todos los contenedores con overflow
+   (tablas de Noticias/Fuentes, paneles de filtros, dropdowns nv-select…).
+   Por defecto toma los valores oscuros; .theme-light los sobrescribe.
+   ============================================================ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit / Chromium / Edge */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  /* borde del color del track → "padding" suave que afina visualmente el thumb */
+  border: 3px solid var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
