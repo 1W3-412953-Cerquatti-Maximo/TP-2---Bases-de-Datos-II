@@ -120,9 +120,15 @@ nav a.nav-primary.active {
   background: var(--color-surface);
 }
 .slogan {
-  font-size: var(--fs-small);
-  color: var(--color-muted);
-  letter-spacing: 0.01em;
+  font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.18rem);
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  background: linear-gradient(95deg, var(--color-primary) 0%, var(--color-accent) 55%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--color-accent); /* fallback si no hay soporte de clip */
+  filter: drop-shadow(0 0 9px rgba(56, 189, 248, 0.22));
 }
 
 .topbar-right {
@@ -167,6 +173,32 @@ nav a.nav-primary.active {
   color: var(--color-primary);
 }
 .auth-link-primary:hover { color: var(--color-primary); }
+
+/* Nombre de usuario con ícono dentro de un avatar circular */
+.auth-user {
+  gap: var(--space-2);
+}
+.auth-user .user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  /* Fondo apenas más oscuro que el header (--color-surface) + borde sutil. */
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+.auth-user .user-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+}
+.auth-user:hover .user-avatar { border-color: var(--color-primary); }
+.auth-user:hover .user-icon { color: var(--color-accent); }
 
 .status {
   display: inline-flex;

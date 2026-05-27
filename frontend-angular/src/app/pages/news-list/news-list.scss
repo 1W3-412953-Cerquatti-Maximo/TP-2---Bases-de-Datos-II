@@ -172,16 +172,25 @@
 /* Listado con scroll interno: la tarjeta se desplaza sin mover toda la página.
    El encabezado de la tabla queda fijo arriba mientras se hace scroll. */
 .news-scroll {
+  /* La tabla va "a sangre" dentro de la tarjeta: las celdas ya aportan su propio
+     padding, así que al quitar el padding del contenedor el header sticky queda
+     pegado al borde superior y desaparece la franja que se veía al hacer scroll.
+     El recorte redondeado lo mantiene el border-radius de .card + overflow. */
+  padding: 0;
   max-height: calc(100vh - 280px);
   min-height: 240px;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: auto;
 }
 .news-scroll thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--color-card);
+  /* Fondo apenas distinto al cuerpo (--color-card) para diferenciar el encabezado,
+     coherente con el dark de NexoVeraz (y con su equivalente en modo claro). */
+  background: var(--color-surface);
+  /* inset shadow en lugar de border-bottom: el borde colapsado no "viaja" con el
+     elemento sticky en algunos navegadores; el inset garantiza el separador. */
+  box-shadow: inset 0 -1px 0 var(--color-border);
 }
 
 .title {

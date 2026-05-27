@@ -1,4 +1,4 @@
-.page-header { margin-bottom: var(--space-6); }
+.page-header { margin-bottom: var(--space-5); }
 
 .page-header code {
   padding: 3px 8px;
@@ -8,6 +8,204 @@
   font-size: var(--fs-small);
 }
 
+/* ============================================================
+   Card "Buscar y filtrar fuentes"
+   (mismo criterio visual que el de Noticias)
+   ============================================================ */
+.filters-card {
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.filters-head h3 {
+  margin: 0 0 4px;
+  font-size: var(--fs-h4);
+}
+.filters-head p { margin: 0; }
+
+/* --- Barra de búsqueda grande con ícono --- */
+.search-box {
+  position: relative;
+  width: 100%;
+}
+.search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 18px 0 50px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--fs-body);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search-input::placeholder { color: var(--color-muted); }
+.search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+.search-box:focus-within .search-icon { color: var(--color-primary); }
+/* oculta la X nativa de type=search para mantener el diseño limpio */
+.search-input::-webkit-search-cancel-button { appearance: none; }
+
+/* --- Grilla de filtros (Tipo / Ordenar por) --- */
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filter-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/* --- Footer: pills de confiabilidad (izq) + contador/limpiar (der) --- */
+.filters-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.risk-pills {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.risk-pills .filter-label { margin-right: var(--space-1); }
+
+.pill {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pill:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+.pill.active {
+  background: var(--overlay-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+/* Alta confiabilidad = verde, Media = ámbar, Baja = rojo (coherente con la barra). */
+.pill-low.active {
+  background: var(--overlay-low-soft);
+  border-color: var(--color-low);
+  color: var(--color-low);
+}
+.pill-medium.active {
+  background: var(--overlay-medium-soft);
+  border-color: var(--color-medium);
+  color: var(--color-medium);
+}
+.pill-high.active {
+  background: var(--overlay-high-soft);
+  border-color: var(--color-high);
+  color: var(--color-high);
+}
+
+.foot-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.results-count {
+  font-size: var(--fs-small);
+  color: var(--color-muted);
+}
+.active-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--overlay-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.clear-btn {
+  min-height: 40px;
+  padding: 0 18px;
+}
+.clear-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .filters-foot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .foot-right {
+    justify-content: space-between;
+  }
+}
+
+/* ============================================================
+   Tabla de fuentes con scroll interno + header sticky
+   (mismo comportamiento que la tabla de Noticias)
+   ============================================================ */
+.sources-scroll {
+  /* La tabla va "a sangre" dentro de la tarjeta: las celdas ya aportan su propio
+     padding, así que al quitar el padding del contenedor el header sticky queda
+     pegado al borde superior y no se ve ninguna franja al hacer scroll.
+     El recorte redondeado lo mantiene el border-radius de .card + overflow. */
+  padding: 0;
+  max-height: calc(100vh - 280px);
+  min-height: 240px;
+  overflow: auto;
+}
+.sources-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  /* Fondo apenas distinto al cuerpo (--color-card) para diferenciar el encabezado,
+     coherente con el dark de NexoVeraz (y con su equivalente en modo claro). */
+  background: var(--color-surface);
+  /* inset shadow en lugar de border-bottom: el borde colapsado no "viaja" con el
+     elemento sticky en algunos navegadores; el inset garantiza el separador. */
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+/* --- Celda de confiabilidad (badge + % + barra) --- */
 .cred-cell {
   display: flex;
   flex-direction: column;

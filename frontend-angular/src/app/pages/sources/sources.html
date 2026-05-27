@@ -13,40 +13,109 @@
 } @else if (sources().length === 0) {
   <div class="empty">No hay fuentes asociadas a tus noticias todavía.</div>
 } @else {
-  <div class="card card-tight table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Fuente</th>
-          <th>Tipo</th>
-          <th>Confiabilidad</th>
-          <th>URL</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (s of sources(); track s.id) {
-          <tr>
-            <td>
-              <div>{{ s.name }}</div>
-            </td>
-            <td><span class="chip">{{ s.type }}</span></td>
-            <td>
-              <div class="cred-cell">
-                <div class="cred-header">
-                  <span [class]="credibilityBadgeClass(s.credibilityScore)">
-                    {{ credibilityLabel(s.credibilityScore) }}
-                  </span>
-                  <span class="mono small">{{ percent(s.credibilityScore) }}%</span>
-                </div>
-                <div [class]="credibilityBarClass(s.credibilityScore)">
-                  <span [style.width.%]="percent(s.credibilityScore)"></span>
-                </div>
-              </div>
-            </td>
-            <td><a [href]="s.url" target="_blank" rel="noopener" class="mono small">{{ s.url }}</a></td>
-          </tr>
+
+  <section class="card filters-card">
+    <div class="filters-head">
+      <h3>Buscar y filtrar fuentes</h3>
+      <p class="muted small">Encontrá fuentes por nombre, tipo o nivel de confiabilidad.</p>
+    </div>
+
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+        <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <input
+        id="source-search"
+        type="search"
+        class="search-input"
+        placeholder="Buscar fuentes por nombre..."
+        autocomplete="off"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)" />
+    </div>
+
+    <div class="filters-grid">
+      <div class="filter-field">
+        <span class="filter-label">Tipo</span>
+        <nv-select
+          [options]="typeOptions()"
+          [value]="selectedType()"
+          placeholder="Todos los tipos"
+          ariaLabel="Filtrar por tipo"
+          (valueChange)="selectedType.set($event)" />
+      </div>
+
+      <div class="filter-field">
+        <span class="filter-label">Ordenar por</span>
+        <nv-select
+          [options]="sortOptions"
+          [value]="selectedSort()"
+          placeholder="Ordenar por"
+          ariaLabel="Ordenar fuentes"
+          (valueChange)="setSort($event)" />
+      </div>
+    </div>
+
+    <div class="filters-foot">
+      <div class="risk-pills">
+        <span class="filter-label">Confiabilidad</span>
+        <button type="button" class="pill" [class.active]="selectedReliability() === ''" (click)="setReliability('')">Todas</button>
+        <button type="button" class="pill pill-low" [class.active]="selectedReliability() === 'HIGH'" (click)="setReliability('HIGH')">Alta</button>
+        <button type="button" class="pill pill-medium" [class.active]="selectedReliability() === 'MEDIUM'" (click)="setReliability('MEDIUM')">Media</button>
+        <button type="button" class="pill pill-high" [class.active]="selectedReliability() === 'LOW'" (click)="setReliability('LOW')">Baja</button>
+      </div>
+
+      <div class="foot-right">
+        <span class="results-count">Mostrando {{ filteredSources().length }} de {{ totalSources() }} fuentes</span>
+        @if (hasActiveFilters()) {
+          <span class="active-pill">Filtros activos</span>
         }
-      </tbody>
-    </table>
-  </div>
+        <button type="button" class="btn btn-ghost clear-btn" (click)="clearFilters()" [disabled]="!hasActiveFilters()">
+          Limpiar filtros
+        </button>
+      </div>
+    </div>
+  </section>
+
+  @if (filteredSources().length === 0) {
+    <div class="empty">No se encontraron fuentes con los filtros aplicados.</div>
+  } @else {
+    <div class="card card-tight table-wrapper sources-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Fuente</th>
+            <th>Tipo</th>
+            <th>Confiabilidad</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of filteredSources(); track s.id) {
+            <tr>
+              <td>
+                <div>{{ s.name }}</div>
+              </td>
+              <td><span class="chip">{{ s.type }}</span></td>
+              <td>
+                <div class="cred-cell">
+                  <div class="cred-header">
+                    <span [class]="credibilityBadgeClass(s.credibilityScore)">
+                      {{ credibilityLabel(s.credibilityScore) }}
+                    </span>
+                    <span class="mono small">{{ percent(s.credibilityScore) }}%</span>
+                  </div>
+                  <div [class]="credibilityBarClass(s.credibilityScore)">
+                    <span [style.width.%]="percent(s.credibilityScore)"></span>
+                  </div>
+                </div>
+              </td>
+              <td><a [href]="s.url" target="_blank" rel="noopener" class="mono small">{{ s.url }}</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 }
