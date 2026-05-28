@@ -38,6 +38,7 @@ public class NewsLinkEvaluationService {
                 article.resolvedUrl(),
                 article.title(),
                 article.contentPreview(),
+                article.content(),
                 article.fetchStatus(),
                 credibilityDiagnosis,
                 List.copyOf(article.warnings())

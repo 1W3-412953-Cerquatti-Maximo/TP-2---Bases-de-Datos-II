@@ -152,10 +152,10 @@ export class ChartDoughnut implements OnDestroy {
               color: theme.text,
               usePointStyle: true,
               pointStyle: 'circle',
-              padding: 20,
+              padding: 25,
               boxWidth: 14,
               boxHeight: 14,
-              font: { size: 15, weight: 600 }
+              font: { size: 20, weight: 600 }
             }
           },
           tooltip: {
@@ -164,12 +164,12 @@ export class ChartDoughnut implements OnDestroy {
             bodyColor: theme.text,
             borderColor: theme.border,
             borderWidth: 1,
-            padding: 13,
+            padding: 17,
             cornerRadius: 10,
             usePointStyle: true,
-            titleFont: { size: 15, weight: 700 },
-            bodyFont: { size: 14, weight: 500 },
-            boxPadding: 6,
+            titleFont: { size: 20, weight: 700 },
+            bodyFont: { size: 19, weight: 500 },
+            boxPadding: 9,
             callbacks: {
               label: (ctx) => {
                 const value = ctx.parsed || 0;

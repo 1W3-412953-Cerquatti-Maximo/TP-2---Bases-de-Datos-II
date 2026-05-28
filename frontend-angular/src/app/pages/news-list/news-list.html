@@ -125,7 +125,7 @@
                 </div>
               </td>
               <td><span [class]="riskBadgeClass(n.riskLevel)">{{ n.riskLevel ?? 'N/A' }}</span></td>
-              <td class="muted small">{{ n.publishedAt ? (n.publishedAt | date:'short') : '—' }}</td>
+              <td class="muted small">{{ (n.publishedAt || n.createdAt) ? ((n.publishedAt || n.createdAt) | date:'short') : '—' }}</td>
               <td class="actions-col">
                 <button type="button" class="btn-delete" (click)="requestDelete(n, $event)">Eliminar</button>
               </td>

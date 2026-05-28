@@ -8,6 +8,7 @@ public record NewsSummaryDto(
         String title,
         String url,
         ZonedDateTime publishedAt,
+        ZonedDateTime createdAt,
         String status,
         Long riskScore,
         String riskLevel,

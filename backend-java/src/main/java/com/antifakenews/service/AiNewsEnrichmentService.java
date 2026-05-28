@@ -8,8 +8,11 @@ import com.antifakenews.dto.TopicDto;
 import com.antifakenews.exception.NotFoundException;
 import com.antifakenews.repository.NewsEnrichmentRepository;
 import com.antifakenews.repository.NewsRepository;
+import com.antifakenews.repository.TopicRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -40,10 +43,13 @@ public class AiNewsEnrichmentService {
     private static final Set<String> VERDICTS = Set.of(
             "TRUE", "MOSTLY_TRUE", "MIXED", "MISLEADING", "FALSE", "UNVERIFIED", "REQUIRES_VERIFICATION");
 
+    private static final Logger log = LoggerFactory.getLogger(AiNewsEnrichmentService.class);
+
     private final AnthropicClient client;
     private final ObjectMapper mapper;
     private final NewsRepository newsRepository;
     private final NewsEnrichmentRepository enrichmentRepository;
+    private final TopicRepository topicRepository;
     private final boolean aiEnabled;
     private final String aiProvider;
     private final int maxTokens;
@@ -51,6 +57,7 @@ public class AiNewsEnrichmentService {
 
     public AiNewsEnrichmentService(AnthropicClient client, ObjectMapper mapper,
                                    NewsRepository newsRepository, NewsEnrichmentRepository enrichmentRepository,
+                                   TopicRepository topicRepository,
                                    @Value("${ai.enabled:false}") boolean aiEnabled,
                                    @Value("${ai.provider:disabled}") String aiProvider,
                                    @Value("${ai.anthropic.enrichment-max-tokens:2000}") int maxTokens,
@@ -59,6 +66,7 @@ public class AiNewsEnrichmentService {
         this.mapper = mapper;
         this.newsRepository = newsRepository;
         this.enrichmentRepository = enrichmentRepository;
+        this.topicRepository = topicRepository;
         this.aiEnabled = aiEnabled;
         this.aiProvider = aiProvider == null ? "" : aiProvider.trim().toLowerCase();
         this.maxTokens = maxTokens;
@@ -85,25 +93,52 @@ public class AiNewsEnrichmentService {
             warnings.add("Contenido insuficiente para enriquecimiento profundo; el análisis se basa en el texto disponible.");
         }
         boolean truncated = rawContent.length() > contentLimit;
-        String content = truncated ? rawContent.substring(0, contentLimit) : rawContent;
+        String content = truncated ? smartTruncate(rawContent, contentLimit) : rawContent;
         if (truncated) {
-            warnings.add("El contenido fue truncado para el análisis.");
+            warnings.add("El contenido fue truncado para el análisis (se conservó el inicio del texto).");
         }
 
-        AnthropicClient.Result result = client.call(buildPrompt(news, title, content, truncated), maxTokens);
+        // Temas permitidos = catálogo de :Topic existentes en Neo4j (la IA no inventa temas).
+        List<String> allowedTopics = topicRepository.findAllNames();
+        Map<String, String> allowedByLower = new java.util.HashMap<>();
+        for (String t : allowedTopics) {
+            if (t != null && !t.isBlank()) {
+                allowedByLower.put(t.trim().toLowerCase(), t.trim());
+            }
+        }
+
+        log.info("Enriquecimiento IA newsId={} analysisContentLen={} truncated={} temasPermitidos={}",
+                newsId, content.length(), truncated, allowedTopics.size());
+
+        AnthropicClient.Result result = client.call(buildPrompt(news, title, content, truncated, allowedTopics), maxTokens);
         if (!result.ok()) {
+            log.warn("Enriquecimiento IA newsId={} llamada fallida: {}", newsId, result.error());
             enrichmentRepository.markFailed(userId, newsId, result.error());
             return failed(newsId, result.error());
         }
 
+        int responseLen = result.text() == null ? 0 : result.text().length();
         JsonNode json = parseJson(result.text());
         if (json == null) {
+            log.warn("Enriquecimiento IA newsId={} respuesta no parseable (responseLen={}). " +
+                    "Probable causa: max_tokens insuficiente o el modelo no devolvió JSON.",
+                    newsId, responseLen);
             enrichmentRepository.markFailed(userId, newsId, "Respuesta de IA no parseable.");
-            return failed(newsId, "No se pudo interpretar la respuesta de la IA (no devolvió JSON válido).");
+            return failed(newsId,
+                    "No se pudo interpretar la respuesta de la IA (no devolvió JSON válido o quedó cortado). " +
+                    "La noticia se mantuvo guardada.");
         }
+        log.info("Enriquecimiento IA newsId={} parseo OK (responseLen={})", newsId, responseLen);
 
-        // --- Validación + armado de datos a persistir ---
-        List<Map<String, Object>> topics = extractTopics(json.path("topics"));
+        // --- Temas: solo se aceptan los del catálogo existente; los inventados se ignoran ---
+        List<Map<String, Object>> topics = extractTopics(json.path("topics"), allowedByLower, warnings);
+        if (topics.isEmpty()) {
+            // Si ningún tema permitido aplica, usar "General" SOLO si existe en la base.
+            String general = allowedByLower.get("general");
+            if (general != null) {
+                topics = List.of(Map.of("name", general, "relevance", 0.5, "confidence", 0.5));
+            }
+        }
 
         List<Map<String, Object>> claims = new ArrayList<>();
         List<String> claimIds = new ArrayList<>();
@@ -123,13 +158,15 @@ public class AiNewsEnrichmentService {
             if (!text.isEmpty()) warnings.add(text);
         }
 
-        // publishedAt: solo si es válida y con confianza suficiente.
+        // publishedAt: solo si es válida y con confianza suficiente (>= 0.6). Si se aplica,
+        // se marca publishedAtSource='AI_INFERRED' + publishedAtConfidence en la persistencia.
+        double publishedAtConfidence = clamp01(json.path("publishedAtConfidence").asDouble(0.0));
         String publishedAtIso = parsePublishedAt(json.path("publishedAt").asText(null));
         boolean wantUpdatePublishedAt = publishedAtIso != null
-                && clamp01(json.path("publishedAtConfidence").asDouble(0.0)) >= PUBLISHED_AT_MIN_CONFIDENCE;
+                && publishedAtConfidence >= PUBLISHED_AT_MIN_CONFIDENCE;
 
         var persisted = enrichmentRepository.persist(
-                userId, newsId, wantUpdatePublishedAt, publishedAtIso,
+                userId, newsId, wantUpdatePublishedAt, publishedAtIso, publishedAtConfidence,
                 "anthropic", client.model(), topics, claims, evidences, factChecks
         ).orElseThrow(() -> new NotFoundException("News not found: " + newsId));
 
@@ -144,21 +181,35 @@ public class AiNewsEnrichmentService {
 
     // ----------------------------- extracción -----------------------------
 
-    private List<Map<String, Object>> extractTopics(JsonNode node) {
+    /**
+     * Acepta SOLO temas que existan en el catálogo (allowedByLower: lowercase→nombre
+     * canónico). Coincidencia case-insensitive; usa el nombre canónico de la base.
+     * Los temas inventados por la IA se descartan (y se avisa por warning).
+     */
+    private List<Map<String, Object>> extractTopics(JsonNode node, Map<String, String> allowedByLower,
+                                                    List<String> warnings) {
         List<Map<String, Object>> list = new ArrayList<>();
         if (!node.isArray()) return list;
+        Set<String> usedCanonical = new java.util.HashSet<>();
+        int dropped = 0;
         for (JsonNode t : node) {
             if (list.size() >= MAX_ITEMS) break;
             String name = t.path("name").asText("").trim();
             if (name.isEmpty()) continue;
-            String slug = t.path("slug").asText("").trim();
-            if (slug.isEmpty()) slug = name.toLowerCase().replace(' ', '-');
+            String canonical = allowedByLower.get(name.toLowerCase());
+            if (canonical == null) {
+                dropped++; // tema inventado / fuera del catálogo: se ignora
+                continue;
+            }
+            if (!usedCanonical.add(canonical)) continue; // sin duplicados
             list.add(Map.of(
-                    "name", name,
-                    "slug", slug,
+                    "name", canonical,
                     "relevance", clamp01(t.path("relevance").asDouble(0.5)),
                     "confidence", clamp01(t.path("confidence").asDouble(0.5))
             ));
+        }
+        if (dropped > 0) {
+            warnings.add("Se ignoraron " + dropped + " tema(s) sugerido(s) por la IA que no existen en el catálogo.");
         }
         return list;
     }
@@ -236,15 +287,37 @@ public class AiNewsEnrichmentService {
 
     // ----------------------------- prompt -----------------------------
 
-    private String buildPrompt(NewsDetailDto news, String title, String content, boolean truncated) {
+    private String buildPrompt(NewsDetailDto news, String title, String content, boolean truncated,
+                               List<String> allowedTopics) {
         StringBuilder sb = new StringBuilder();
         sb.append("Sos un asistente de análisis de desinformación de NexoVeraz. ")
                 .append("Extraé datos estructurados ÚNICAMENTE a partir del texto de la noticia. ")
                 .append("Reglas: no inventes fuentes externas, no afirmes haber verificado internet en tiempo real, ")
-                .append("no determines verdad absoluta. Si no podés determinar algo, devolvé null o un array vacío. ")
+                .append("no determines verdad absoluta. ")
                 .append("Los 'factChecks' son verificaciones ASISTIDAS basadas en el texto, no fact-checking externo real; ")
                 .append("si no hay evidencia suficiente usá verdict REQUIRES_VERIFICATION o UNVERIFIED. ")
                 .append("La fecha de publicación solo devolvela si está explícita o claramente inferible del texto.\n\n");
+
+        sb.append("MUY IMPORTANTE — robustez de salida:\n")
+                .append("- Devolvé SIEMPRE JSON válido con TODAS las claves del esquema, aunque alguna esté vacía.\n")
+                .append("- Si NO podés extraer un campo, usá array vacío [] o null; NUNCA marques error.\n")
+                .append("- topics/claims/evidences/factChecks/warnings deben existir SIEMPRE (mínimo []).\n")
+                .append("- publishedAt puede ser null si no es claro.\n")
+                .append("- Si no encontrás claims sólidos, devolvé claims: []; no inventes.\n")
+                .append("- Si no encontrás fact checks, devolvé factChecks: [].\n")
+                .append("- Sé conciso para no exceder el límite de tokens (textos cortos en cada item).\n");
+        if (truncated) {
+            sb.append("- El contenido fue truncado por límite técnico. Analizá ÚNICAMENTE el texto disponible.\n");
+        }
+        sb.append("\n");
+
+        // Clasificación temática restringida al catálogo existente (no inventar temas).
+        String allowedList = (allowedTopics == null || allowedTopics.isEmpty())
+                ? "(no hay temas disponibles)"
+                : String.join(", ", allowedTopics);
+        sb.append("Temas PERMITIDOS (clasificá usando EXCLUSIVamente estos nombres, copiados EXACTOS; ")
+                .append("NO inventes temas nuevos): ").append(allowedList).append(".\n")
+                .append("Si ningún tema permitido aplica, usá \"General\" si está en la lista; si no, devolvé topics vacío.\n\n");
 
         sb.append("Noticia:\n");
         sb.append("- Título: ").append(title.isBlank() ? "(sin título)" : title).append("\n");
@@ -274,7 +347,7 @@ public class AiNewsEnrichmentService {
                 {
                   "publishedAt": "ISO-8601 o null",
                   "publishedAtConfidence": 0.0,
-                  "topics": [{"name":"", "slug":"", "relevance":0.0, "confidence":0.0}],
+                  "topics": [{"name":"(uno de los Temas permitidos, exacto)", "relevance":0.0, "confidence":0.0}],
                   "claims": [{"text":"", "type":"", "riskLevel":"LOW|MEDIUM|HIGH", "confidence":0.0, "explanation":""}],
                   "evidences": [{"text":"", "kind":"SUPPORTING_EVIDENCE|REFUTING_EVIDENCE|MISSING_EVIDENCE|WEAK_EVIDENCE|CONTEXTUAL_EVIDENCE", "supportsClaim":false, "confidence":0.0, "explanation":"", "claimIndex":0}],
                   "factChecks": [{"verdict":"TRUE|MOSTLY_TRUE|MIXED|MISLEADING|FALSE|UNVERIFIED|REQUIRES_VERIFICATION", "confidence":0.0, "explanation":"", "claimIndex":0}],
@@ -291,25 +364,29 @@ public class AiNewsEnrichmentService {
     private JsonNode parseJson(String raw) {
         if (raw == null) return null;
         String t = raw.trim();
+        // 1) Quitar fences ```json ... ```
         if (t.startsWith("```")) {
             int nl = t.indexOf('\n');
             if (nl >= 0) t = t.substring(nl + 1);
             if (t.endsWith("```")) t = t.substring(0, t.length() - 3);
             t = t.trim();
         }
-        try {
-            return mapper.readTree(t);
-        } catch (Exception ignored) {
-            // fallback por llaves
-        }
+        // 2) Intento directo
+        try { return mapper.readTree(t); } catch (Exception ignored) { /* sigue */ }
+
+        // 3) Recorte por llaves: del primer '{' al último '}'
         int start = t.indexOf('{');
         int end = t.lastIndexOf('}');
         if (start >= 0 && end > start) {
-            try {
-                return mapper.readTree(t.substring(start, end + 1));
-            } catch (Exception ignored) {
-                // no es JSON
-            }
+            String chunk = t.substring(start, end + 1);
+            try { return mapper.readTree(chunk); } catch (Exception ignored) { /* sigue */ }
+        }
+
+        // 4) Recuperación de JSON truncado (típico cuando se hizo max_tokens):
+        //    intentamos balancear llaves/corchetes desde el primer '{'.
+        if (start >= 0) {
+            try { return mapper.readTree(balanceTruncatedJson(t.substring(start))); }
+            catch (Exception ignored) { /* sin suerte */ }
         }
         return null;
     }
@@ -358,5 +435,64 @@ public class AiNewsEnrichmentService {
 
     private String id(String prefix) {
         return prefix + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    /**
+     * Trunca el contenido tratando de no cortar a mitad de oración/párrafo.
+     * Busca el último \n\n, \n o ". " dentro del 70-100% del límite.
+     */
+    private String smartTruncate(String text, int limit) {
+        if (text == null || text.length() <= limit) return text == null ? "" : text;
+        String window = text.substring(0, limit);
+        int minAcceptable = (int) (limit * 0.7);
+        int[] candidates = {
+                window.lastIndexOf("\n\n"),
+                window.lastIndexOf('\n'),
+                window.lastIndexOf(". "),
+                window.lastIndexOf("? "),
+                window.lastIndexOf("! ")
+        };
+        int best = -1;
+        for (int c : candidates) {
+            if (c >= minAcceptable && c > best) best = c;
+        }
+        return (best > 0 ? window.substring(0, best) : window).trim();
+    }
+
+    /**
+     * Recupera un JSON truncado a mitad por max_tokens balanceando llaves/corchetes.
+     * Quita basura final (coma colgante, comilla suelta) y agrega los cierres faltantes.
+     */
+    private String balanceTruncatedJson(String input) {
+        String t = input.trim();
+        if (!t.startsWith("{")) return t;
+
+        // Quitar coma o coma+espacio final.
+        while (t.endsWith(",")) t = t.substring(0, t.length() - 1).trim();
+
+        // Contar pendientes ignorando lo que está dentro de strings.
+        int openObj = 0, openArr = 0;
+        boolean inStr = false;
+        boolean escape = false;
+        for (int i = 0; i < t.length(); i++) {
+            char c = t.charAt(i);
+            if (escape) { escape = false; continue; }
+            if (c == '\\' && inStr) { escape = true; continue; }
+            if (c == '"') { inStr = !inStr; continue; }
+            if (inStr) continue;
+            switch (c) {
+                case '{' -> openObj++;
+                case '}' -> openObj--;
+                case '[' -> openArr++;
+                case ']' -> openArr--;
+            }
+        }
+        // Si quedó string abierto, cerrarlo.
+        StringBuilder fixed = new StringBuilder(t);
+        if (inStr) fixed.append('"');
+        // Cerrar arrays y objetos pendientes (primero arrays, luego objetos).
+        while (openArr-- > 0) fixed.append(']');
+        while (openObj-- > 0) fixed.append('}');
+        return fixed.toString();
     }
 }

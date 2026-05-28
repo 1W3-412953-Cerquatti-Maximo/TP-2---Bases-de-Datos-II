@@ -13,21 +13,6 @@ export interface AiUsage {
   outputTokens: number;
 }
 
-export interface AiNewsEnrichmentResponse {
-  newsId: string;
-  enriched: boolean;
-  status: string;
-  message?: string;
-  publishedAtUpdated: boolean;
-  topicsCreated: number;
-  claimsCreated: number;
-  evidencesCreated: number;
-  factChecksCreated: number;
-  provider: string;
-  model?: string;
-  warnings: string[];
-}
-
 export interface AiAnalyzeNewsResponse {
   enabled: boolean;
   ok: boolean;

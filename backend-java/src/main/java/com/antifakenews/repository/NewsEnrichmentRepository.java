@@ -37,7 +37,7 @@ public class NewsEnrichmentRepository {
 
     public Optional<PersistResult> persist(
             String userId, String newsId,
-            boolean updatePublishedAt, String publishedAtIso,
+            boolean updatePublishedAt, String publishedAtIso, double publishedAtConfidence,
             String provider, String model,
             List<Map<String, Object>> topics,
             List<Map<String, Object>> claims,
@@ -73,6 +73,7 @@ public class NewsEnrichmentRepository {
                 newsParams.put("model", model);
                 newsParams.put("update", updatePublishedAt);
                 newsParams.put("pubIso", publishedAtIso);
+                newsParams.put("pubConfidence", publishedAtConfidence);
                 Result upd = tx.run("""
                         MATCH (n:News {id: $newsId})
                         WITH n, ($update AND $pubIso IS NOT NULL
@@ -82,19 +83,21 @@ public class NewsEnrichmentRepository {
                             n.aiEnrichmentModel = $model,
                             n.aiEnrichmentStatus = 'COMPLETED'
                         FOREACH (_ IN CASE WHEN doUpdate THEN [1] ELSE [] END |
-                            SET n.publishedAt = datetime($pubIso))
+                            SET n.publishedAt = datetime($pubIso),
+                                n.publishedAtSource = 'AI_INFERRED',
+                                n.publishedAtConfidence = $pubConfidence)
                         RETURN doUpdate AS publishedAtUpdated
                         """, newsParams);
                 boolean publishedAtUpdated = upd.hasNext() && upd.next().get("publishedAtUpdated").asBoolean(false);
 
-                // 4. Topics (MERGE por nombre; no pisa props de Topics existentes/seed).
+                // 4. Topics: SOLO se vincula contra Topics YA EXISTENTES (MATCH, no MERGE):
+                //    la IA no puede crear temas nuevos. Si un nombre no existe, esa fila no
+                //    matchea y simplemente no se crea relación (se ignora de forma segura).
                 if (!topics.isEmpty()) {
                     tx.run("""
                             MATCH (n:News {id: $newsId})
                             UNWIND $topics AS t
-                            MERGE (tp:Topic {name: t.name})
-                              ON CREATE SET tp.id = randomUUID(), tp.slug = t.slug,
-                                            tp.origin = 'AI_ENRICHMENT', tp.createdAt = datetime()
+                            MATCH (tp:Topic {name: t.name})
                             MERGE (n)-[r:ABOUT]->(tp)
                             SET r.relevance = t.relevance, r.confidence = t.confidence,
                                 r.source = 'AI_ENRICHMENT', r.generatedAt = datetime()

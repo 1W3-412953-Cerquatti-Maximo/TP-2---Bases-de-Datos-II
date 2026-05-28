@@ -8,6 +8,7 @@ export interface NewsSummary {
   title: string;
   url: string;
   publishedAt: string | null;
+  createdAt: string | null;
   status: string | null;
   riskScore: number | null;
   riskLevel: RiskLevel | null;
@@ -55,6 +56,9 @@ export interface NewsDetail {
   content: string;
   url: string;
   publishedAt: string | null;
+  createdAt: string | null;
+  publishedAtSource: string | null;
+  publishedAtConfidence: number | null;
   status: string | null;
   riskScore: number | null;
   riskLevel: RiskLevel | null;

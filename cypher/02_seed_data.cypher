@@ -13,7 +13,345 @@
 //       MEDIUM → 40..69
 //       HIGH   → 70..100
 //   * credibilityScore ∈ [0, 1] — propiedad de :Source
-//   * confidence/relevance/weight/interactionStrength ∈ [0, 1]
+//   * confidence/releNecesito implementar la Subfase C de corrección lógica en NexoVeraz: unificar el cálculo de riskScore.
+
+                      Contexto:
+                      - Proyecto: NexoVeraz — App Anti Fake News.
+                      - Backend Java 21 + Spring Boot + Neo4j.
+                      - Frontend Angular SPA.
+                      - Ya existe conexión real con Anthropic.
+                      - Ya existe Asistente IA real.
+                      - Ya existe enriquecimiento estructurado con IA.
+                      - Ya existe NewsProcessingPipelineService creado en Subfase B.
+                      - Actualmente:
+                        - POST /api/news/submit-url usa el pipeline.
+                        - POST /api/news/{id}/ai-enrichment usa el pipeline.
+                        - NewsAnalysisService calcula riskScore oficial sobre el grafo.
+                      - Problema pendiente:
+                        - El riskScore de “Evaluar Link” y el riskScore del detalle de noticia pueden ser distintos.
+                        - Parece existir una lógica preliminar separada, por ejemplo PreliminaryCredibilityService o NewsLinkEvaluationService.
+                        - Esto genera inconsistencia: una noticia puede mostrar un score al evaluarse y otro al recalcularse desde el detalle.
+
+                      Objetivo general:
+                      Hacer que exista una única fuente de verdad para el riskScore oficial de una noticia.
+
+                      Regla principal:
+                      El riskScore oficial debe calcularse siempre con el mismo servicio y la misma lógica.
+
+                      La IA NO debe decidir directamente el score final.
+                      La IA extrae datos estructurados:
+                      - temas,
+                      - claims,
+                      - evidencias,
+                      - fact checks,
+                      - fecha,
+                      - señales.
+
+                      Luego el backend calcula el riskScore usando reglas explicables sobre esos datos.
+
+                      ====================================================
+                      1. Revisar estado actual
+                      ====================================================
+
+                      Revisar primero:
+
+                      Backend:
+                      - NewsProcessingPipelineService
+                      - NewsAnalysisService
+                      - NewsLinkEvaluationService
+                      - PreliminaryCredibilityService si existe
+                      - NewsController
+                      - NewsService
+                      - AiNewsEnrichmentService
+                      - NewsEnrichmentPersistenceService
+                      - endpoints:
+                        - POST /api/news/submit-url
+                        - POST /api/news/{id}/ai-enrichment
+                        - GET /api/news/{id}/analysis
+                        - endpoint usado por “Buscar y evaluar” en Evaluar Link
+
+                      Frontend:
+                      - evaluate-link component
+                      - news-detail component
+                      - services Angular relacionados con news/evaluate/analysis
+
+                      Objetivo de la revisión:
+                      Detectar todos los lugares donde se calcula, muestra o persiste riskScore/riskLevel.
+
+                      ====================================================
+                      2. Definir riskScore oficial
+                      ====================================================
+
+                      El riskScore oficial debe salir de un único servicio.
+
+                      Si NewsAnalysisService ya es el servicio oficial:
+                      - usarlo como fuente única.
+                      - todo endpoint que necesite score final debe llamarlo.
+
+                      Si NewsAnalysisService mezcla muchas cosas, crear internamente un servicio más claro:
+
+                      RiskScoringService
+
+                      Este servicio debe contener la lógica determinística del score.
+
+                      NewsAnalysisService puede usar RiskScoringService.
+
+                      Regla:
+                      No debe haber dos lógicas independientes para calcular riskScore oficial.
+
+                      ====================================================
+                      3. Unificar Submit URL
+                      ====================================================
+
+                      Actualizar el flujo de POST /api/news/submit-url:
+
+                      Flujo esperado:
+                      1. Crear News básica.
+                      2. Ejecutar enriquecimiento IA estructurado si AI_ENABLED=true y AI_PROVIDER=anthropic.
+                      3. Guardar componentes IA en Neo4j.
+                      4. Calcular riskScore oficial usando NewsAnalysisService/RiskScoringService.
+                      5. Persistir riskScore/riskLevel oficial en News.
+                      6. Devolver ese mismo riskScore/riskLevel al frontend.
+
+                      Importante:
+                      - No conservar como score oficial el score preliminar de Evaluar Link.
+                      - No usar riskScore enviado por frontend como score oficial.
+                      - Si no hay claims, igual calcular con los datos disponibles:
+                        - fuente,
+                        - confiabilidad,
+                        - temas,
+                        - evidencias,
+                        - fact checks,
+                        - posts si existen.
+                      - Si no hay datos suficientes, devolver score default controlado, pero generado por el mismo servicio oficial.
+
+                      Eliminar o modificar esta regla actual:
+                      - "submit-url recalcula solo si el enriquecimiento creó >=1 claim"
+
+                      Nueva regla:
+                      - submit-url debe intentar recalcular siempre con el servicio oficial después de crear/enriquecer.
+
+                      ====================================================
+                      4. Unificar botón “Calcular análisis de riesgo” en detalle
+                      ====================================================
+
+                      El botón del detalle:
+                      “Calcular análisis de riesgo”
+
+                      Debe usar exactamente el mismo servicio oficial que usa submit-url.
+
+                      Comportamiento:
+                      - Recalcula riskScore/riskLevel desde el grafo actual.
+                      - Persiste el resultado en News.
+                      - Devuelve el mismo formato o uno compatible con la UI.
+                      - No debe usar otra lógica paralela.
+                      - No debe cambiar el score salvo que los datos estructurados hayan cambiado.
+
+                      Si una noticia no fue enriquecida todavía:
+                      - calcular con datos disponibles.
+                      - mostrar warning claro si corresponde:
+                        “La noticia tiene pocos datos estructurados para un análisis completo.”
+
+                      ====================================================
+                      5. Evaluar Link: corregir score preliminar
+                      ====================================================
+
+                      Actualmente “Buscar y evaluar” puede mostrar un riskScore preliminar distinto al oficial.
+
+                      Corregir esta inconsistencia de una de estas dos formas, eligiendo la más segura:
+
+                      OPCIÓN A — Recomendada si es simple:
+                      Hacer que “Buscar y evaluar” use el mismo pipeline oficial en modo preview:
+                      - extraer datos,
+                      - enriquecer con IA,
+                      - calcular score con la misma lógica,
+                      - mostrar score oficial de preview.
+                      Si luego el usuario guarda la noticia, debe reutilizar el resultado o recalcular con la misma lógica para que coincida.
+
+                      OPCIÓN B — Si preview oficial complica demasiado:
+                      Cambiar la UI para que “Buscar y evaluar” NO muestre riskScore oficial.
+                      Debe mostrar solo:
+                      - URL detectada,
+                      - título,
+                      - fuente,
+                      - datos preliminares,
+                      - mensaje: “El riskScore oficial se calculará al guardar y procesar la noticia.”
+                      Luego, al hacer “Guardar noticia”, se ejecuta el pipeline oficial y recién ahí se muestra el riskScore final.
+
+                      IMPORTANTE:
+                      No debe seguir mostrándose un riskScore preliminar como si fuera el score oficial.
+
+                      Si se mantiene un score preliminar por UX:
+                      - renombrarlo explícitamente como “Estimación preliminar”.
+                      - no persistirlo como riskScore oficial.
+                      - no mezclarlo con el score oficial de News.
+
+                      ====================================================
+                      6. PreliminaryCredibilityService
+                      ====================================================
+
+                      Si existe PreliminaryCredibilityService o lógica similar:
+
+                      - No usarla para riskScore oficial.
+                      - Puede quedar solo como ayuda preliminar de UI, claramente marcada como preliminar.
+                      - Si ya no se necesita, dejarla sin uso o eliminarla si es seguro.
+
+                      No permitir que:
+                      - PreliminaryCredibilityService
+                      - NewsLinkEvaluationService
+                      - frontend
+                      calculen o persistan el riskScore oficial.
+
+                      ====================================================
+                      7. Persistencia en Neo4j
+                      ====================================================
+
+                      La propiedad News.riskScore y News.riskLevel deben representar únicamente el score oficial.
+
+                      Reglas:
+                      - Se actualizan desde NewsAnalysisService/RiskScoringService.
+                      - No se pisan con valores preliminares.
+                      - No se pisan con aiRiskScore del Asistente IA.
+                      - No se pisan con valores enviados desde Angular.
+
+                      Agregar si es útil:
+                      - riskCalculatedAt
+                      - riskCalculationSource: "GRAPH_RULES"
+                      - riskCalculationVersion: "v1"
+
+                      ====================================================
+                      8. Respuesta del pipeline
+                      ====================================================
+
+                      NewsProcessingResult y SubmitNewsUrlResponse deben devolver:
+
+                      - riskScore oficial.
+                      - riskLevel oficial.
+                      - aiEnrichmentStatus.
+                      - counts de topics/claims/evidences/factChecks.
+                      - warnings.
+                      - opcional:
+                        - riskCalculationSource
+                        - riskCalculatedAt
+
+                      Si hay score preliminar, devolverlo separado:
+
+                      - preliminaryRiskScore
+                      - preliminaryRiskLevel
+
+                      Pero preferencia:
+                      No mostrarlo si genera confusión.
+
+                      ====================================================
+                      9. Frontend
+                      ====================================================
+
+                      Actualizar Evaluar Link:
+
+                      - “Buscar y evaluar” no debe mostrar un score preliminar como score oficial.
+                      - Si se elige Opción A, mostrar score oficial de preview.
+                      - Si se elige Opción B, mostrar mensaje indicando que el score oficial se calcula al guardar.
+                      - Al guardar noticia, mostrar el riskScore/riskLevel devuelto por submit-url, que ya debe ser oficial.
+                      - Asegurar que el score mostrado luego en /news y /news/:id coincida con el score devuelto al guardar.
+
+                      Actualizar Detalle de Noticia:
+
+                      - “Calcular análisis de riesgo” debe recalcular con el mismo servicio oficial.
+                      - Si no cambió el grafo, no debería cambiar arbitrariamente el score.
+                      - Mostrar warnings si hay pocos datos.
+
+                      No tocar:
+                      - Asistente IA opcional.
+                      - Resumen IA.
+                      - Enriquecimiento IA manual todavía, salvo que sea necesario para conectar al pipeline.
+
+                      ====================================================
+                      10. Validaciones esperadas
+                      ====================================================
+
+                      Caso 1: Guardar noticia desde Evaluar Link
+
+                      1. Pegar URL.
+                      2. Buscar/evaluar.
+                      3. Guardar noticia.
+                      4. El backend procesa con pipeline.
+                      5. Devuelve riskScore oficial.
+                      6. Ir a /news.
+                      7. Confirmar que aparece el mismo riskScore.
+                      8. Abrir detalle.
+                      9. Confirmar que aparece el mismo riskScore.
+                      10. Click en “Calcular análisis de riesgo”.
+                      11. Si los datos no cambiaron, el score debe mantenerse igual.
+
+                      Caso 2: Reprocesar con IA
+
+                      1. Abrir noticia.
+                      2. Ejecutar enriquecimiento IA.
+                      3. Recalcular riesgo.
+                      4. El riskScore debe venir del mismo servicio oficial.
+                      5. No debe duplicar datos.
+                      6. No debe generar diferencias incoherentes.
+
+                      Caso 3: Sin IA o fallo IA
+
+                      1. Si IA falla, la noticia no se pierde.
+                      2. El score se calcula con datos disponibles.
+                      3. Se devuelve warning claro.
+                      4. No se usa score inventado por frontend.
+
+                      ====================================================
+                      11. Backend build
+                      ====================================================
+
+                      Ejecutar:
+
+                      mvn clean compile
+
+                      Si mvn no está en PATH, usar Maven de IntelliJ.
+
+                      ====================================================
+                      12. Frontend build
+                      ====================================================
+
+                      Ejecutar:
+
+                      npm run build
+
+                      Si hay problema de memoria:
+                      PowerShell:
+                      $env:NODE_OPTIONS="--max-old-space-size=4096"
+                      npm run build
+                      Remove-Item Env:NODE_OPTIONS
+
+                      ====================================================
+                      13. Restricciones
+                      ====================================================
+
+                      - No tocar .claude.
+                      - No tocar API Key.
+                      - No exponer API Key.
+                      - No romper Asistente IA real.
+                      - No romper Enriquecimiento IA.
+                      - No borrar datos de Neo4j.
+                      - No resetear la base.
+                      - No cambiar radicalmente UI.
+                      - No eliminar todavía la subsección manual de Enriquecimiento IA, salvo que sea estrictamente necesario.
+                      - No implementar Posts/Usuarios IA en esta subfase.
+
+                      ====================================================
+                      14. Al finalizar informar
+                      ====================================================
+
+                      Informar:
+                      - dónde estaba la duplicación de riskScore.
+                      - qué servicio quedó como fuente oficial.
+                      - qué pasó con PreliminaryCredibilityService o lógica preliminar.
+                      - qué endpoints usan ahora el cálculo oficial.
+                      - cómo se asegura que Evaluar Link, Noticias y Detalle muestran el mismo score.
+                      - si se eligió Opción A o B para Evaluar Link.
+                      - resultado de mvn clean compile.
+                      - resultado de npm run build.
+                      - pasos para probar.vance/weight/interactionStrength ∈ [0, 1]
 //
 // Ejecutar DESPUÉS de 01_constraints.cypher.
 // Idempotente: re-ejecutar no duplica nodos (MERGE) y refresca

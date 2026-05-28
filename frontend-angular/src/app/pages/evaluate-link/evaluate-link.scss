@@ -58,12 +58,24 @@
 
 .save-feedback { margin-top: var(--space-4); }
 
+/* Hint discreto bajo el botón cuando la URL actual ya fue guardada en la sesión. */
+.save-hint {
+  margin: var(--space-2) 0 0;
+  text-align: right;
+}
+
 .save-success {
   margin-top: var(--space-4);
   padding: var(--space-4) var(--space-5);
   background: var(--overlay-low-soft);
   border: 1px solid var(--color-low);
   border-radius: 16px;
+}
+
+/* Variante "noticia ya existente": tono informativo (azul/teal) en vez de verde. */
+.save-success.save-existing {
+  background: var(--overlay-accent-soft);
+  border-color: var(--color-accent);
 }
 .save-success-head {
   display: flex;
@@ -227,6 +239,49 @@
 .ai-actions {
   margin-top: var(--space-4);
 }
+
+.preliminary-caption {
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- Vista previa de la noticia (resultado de "Buscar noticia") --- */
+.preview-card { margin-top: var(--space-4); }
+.preview-head { margin-bottom: var(--space-4); }
+.preview-head h3 { margin: 0 0 4px; }
+.preview-head p { margin: 0; }
+
+.preview-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.preview-meta .kv-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.preview-meta .kv-label {
+  min-width: 130px;
+  color: var(--color-muted);
+  font-size: var(--fs-tiny);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preview-body { margin-bottom: var(--space-4); }
+.preview-body h4 { margin: 0 0 var(--space-2); }
+.preview-body p { margin: 0; line-height: 1.6; }
+
+.preview-actions { display: flex; }
 
 .bullet-list {
   display: flex;

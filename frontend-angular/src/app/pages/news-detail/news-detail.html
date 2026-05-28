@@ -15,7 +15,17 @@
       <button type="button" class="btn-delete" (click)="requestDelete()">Eliminar noticia</button>
     </div>
     <h1>{{ d.title }}</h1>
-    <p class="muted">{{ d.content }}</p>
+    <div class="content-block" [class.expanded]="contentExpanded()">
+      <p class="muted content-text">
+        {{ contentExpanded() ? d.content : truncatedContent(d.content) }}
+      </p>
+      @if (contentNeedsTruncate(d.content)) {
+        <button type="button" class="content-toggle" (click)="toggleContent()"
+                [attr.aria-expanded]="contentExpanded()">
+          {{ contentExpanded() ? 'Ver menos' : 'Ver más' }}
+        </button>
+      }
+    </div>
 
     <div class="hero-stats">
       <div>
@@ -26,8 +36,17 @@
         </div>
       </div>
       <div>
-        <div class="kv-label">Publicada</div>
-        <div class="kv-value">{{ d.publishedAt ? (d.publishedAt | date:'medium') : '—' }}</div>
+        <div class="kv-label">Fecha de publicación</div>
+        <div class="kv-value">
+          {{ d.publishedAt ? (d.publishedAt | date:'medium') : '—' }}
+          @if (d.publishedAt && d.publishedAtSource === 'AI_INFERRED') {
+            <span class="muted tiny">· estimada por IA</span>
+          }
+        </div>
+      </div>
+      <div>
+        <div class="kv-label">Cargada en NexoVeraz</div>
+        <div class="kv-value">{{ d.createdAt ? (d.createdAt | date:'medium') : '—' }}</div>
       </div>
       <div>
         <div class="kv-label">Fuente</div>
@@ -230,56 +249,6 @@
     }
   </section>
 
-  <!-- Enriquecimiento estructurado con IA (Fase IA 3) -->
-  <section class="card enrichment-section">
-    <div class="enrichment-head">
-      <div>
-        <h3>Enriquecimiento estructurado con IA</h3>
-        <p class="muted small">
-          La IA extrae temas, claims, evidencias y verificaciones asistidas del texto y los guarda en el grafo.
-        </p>
-      </div>
-      <button type="button" class="btn btn-primary" (click)="enrichWithAi()" [disabled]="enriching()">
-        {{ enriching() ? 'Enriqueciendo…' : 'Enriquecer con IA' }}
-      </button>
-    </div>
-
-    <div class="disclaimer">
-      <span class="disclaimer-icon">ℹ</span>
-      <div>
-        Los datos generados por IA son <strong>asistidos y deben ser revisados</strong>.
-        No representan una verificación externa definitiva.
-      </div>
-    </div>
-
-    @if (enriching()) {
-      <div class="loading">La IA está extrayendo temas, claims, evidencias y verificaciones…</div>
-    }
-    @if (enrichError()) {
-      <div class="error">{{ enrichError() }}</div>
-    }
-    @if (enrichResult(); as res) {
-      <div class="enrichment-success">
-        <div class="enrichment-success-head">
-          <span class="badge badge-low">Enriquecimiento completado</span>
-          <span class="badge badge-info">{{ res.provider }}</span>
-        </div>
-        <p class="muted small">
-          Temas: <strong>{{ res.topicsCreated }}</strong> ·
-          Claims: <strong>{{ res.claimsCreated }}</strong> ·
-          Evidencias: <strong>{{ res.evidencesCreated }}</strong> ·
-          Fact Checks: <strong>{{ res.factChecksCreated }}</strong>
-          @if (res.publishedAtUpdated) { · fecha de publicación actualizada }
-        </p>
-        @if (res.warnings.length > 0) {
-          <ul class="ai-warnings">
-            @for (w of res.warnings; track w) { <li>{{ w }}</li> }
-          </ul>
-        }
-      </div>
-    }
-  </section>
-
   <!-- Datos asociados (acordeones colapsables) -->
   <div class="accordions">
 
@@ -320,7 +289,7 @@
 
     <details class="card accordion">
       <summary>
-        <span class="acc-title">Claims</span>
+        <span class="acc-title">Afirmaciones</span>
         <span class="acc-count">{{ d.claims.length }}</span>
       </summary>
       <div class="acc-body">
@@ -369,7 +338,7 @@
 
     <details class="card accordion">
       <summary>
-        <span class="acc-title">Fact Checks</span>
+        <span class="acc-title">Verificaciones</span>
         <span class="acc-count">{{ d.factChecks.length }}</span>
       </summary>
       <div class="acc-body">
@@ -393,7 +362,7 @@
 
     <details class="card accordion">
       <summary>
-        <span class="acc-title">Posts</span>
+        <span class="acc-title">Publicaciones</span>
         <span class="acc-count">{{ d.posts.length }}</span>
       </summary>
       <div class="acc-body">

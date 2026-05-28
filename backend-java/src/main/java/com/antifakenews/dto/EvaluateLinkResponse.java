@@ -7,6 +7,7 @@ public record EvaluateLinkResponse(
         String resolvedUrl,
         String title,
         String contentPreview,
+        String content,
         String fetchStatus,
         CredibilityDiagnosisDto credibilityDiagnosis,
         List<String> warnings

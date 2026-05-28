@@ -41,12 +41,13 @@ public class NewsRepository {
                        n.title       AS title,
                        n.url         AS url,
                        n.publishedAt AS publishedAt,
+                       n.createdAt   AS createdAt,
                        n.status      AS status,
                        n.riskScore   AS riskScore,
                        n.riskLevel   AS riskLevel,
                        s.name        AS sourceName,
                        collect(DISTINCT t.name) AS topicNames
-                ORDER BY n.publishedAt DESC
+                ORDER BY coalesce(n.publishedAt, n.createdAt) DESC
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
@@ -55,6 +56,7 @@ public class NewsRepository {
                     r.get("title").asString(null),
                     r.get("url").asString(null),
                     r.get("publishedAt").isNull() ? null : r.get("publishedAt").asZonedDateTime(),
+                    r.get("createdAt").isNull() ? null : r.get("createdAt").asZonedDateTime(),
                     r.get("status").asString(null),
                     r.get("riskScore").isNull() ? null : r.get("riskScore").asLong(),
                     r.get("riskLevel").asString(null),
@@ -75,6 +77,7 @@ public class NewsRepository {
             String newsId, String title, String content, String url,
             String sourceId, String sourceName, String domain,
             long riskScore, String riskLevel, String status,
+            String publishedAtIso, String publishedAtSource, Double publishedAtConfidence,
             List<Map<String, Object>> topics) {
 
         final String cypher = """
@@ -85,7 +88,9 @@ public class NewsRepository {
                   content: $content,
                   url: $url,
                   createdAt: datetime(),
-                  publishedAt: datetime(),
+                  publishedAt: CASE WHEN $publishedAtIso IS NULL THEN null ELSE datetime($publishedAtIso) END,
+                  publishedAtSource: $publishedAtSource,
+                  publishedAtConfidence: $publishedAtConfidence,
                   status: $status,
                   riskScore: $riskScore,
                   riskLevel: $riskLevel,
@@ -127,6 +132,9 @@ public class NewsRepository {
         params.put("sourceId", sourceId);
         params.put("sourceName", sourceName);
         params.put("domain", domain);
+        params.put("publishedAtIso", publishedAtIso);
+        params.put("publishedAtSource", publishedAtSource);
+        params.put("publishedAtConfidence", publishedAtConfidence);
         params.put("riskScore", riskScore);
         params.put("riskLevel", riskLevel);
         params.put("status", status);
@@ -192,6 +200,48 @@ public class NewsRepository {
         }
     }
 
+    /**
+     * Busca una noticia ya existente del usuario por URL exacta (la URL se compara
+     * normalizada por el servicio antes de llegar acá). Se usa para evitar duplicar
+     * la misma noticia al re-enviar la URL desde "Evaluar y guardar".
+     */
+    public Optional<ExistingNewsByUrl> findIdByUserAndUrl(String userId, String url) {
+        final String cypher = """
+                MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {url: $url})
+                OPTIONAL MATCH (n)-[:PUBLISHED_BY]->(s:Source)
+                OPTIONAL MATCH (n)-[:ABOUT]->(t:Topic)
+                RETURN n.id        AS newsId,
+                       n.title     AS title,
+                       n.url       AS url,
+                       n.status    AS status,
+                       n.riskScore AS riskScore,
+                       n.riskLevel AS riskLevel,
+                       s.name      AS sourceName,
+                       collect(DISTINCT t.name) AS topicNames
+                LIMIT 1
+                """;
+
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeRead(tx -> {
+                Result result = tx.run(cypher, Map.of("userId", userId, "url", url));
+                if (!result.hasNext()) {
+                    return Optional.<ExistingNewsByUrl>empty();
+                }
+                Record r = result.next();
+                return Optional.of(new ExistingNewsByUrl(
+                        r.get("newsId").asString(null),
+                        r.get("title").asString(null),
+                        r.get("url").asString(null),
+                        r.get("status").asString(null),
+                        r.get("riskScore").isNull() ? 0L : r.get("riskScore").asLong(),
+                        r.get("riskLevel").asString(null),
+                        r.get("sourceName").asString(null),
+                        r.get("topicNames").asList(Value::asString)
+                ));
+            });
+        }
+    }
+
     public Optional<NewsDetailDto> findById(String userId, String id) {
         final String cypher = """
                 MATCH (owner:AppUser {id: $userId})-[:OWNS_NEWS]->(n:News {id: $id})
@@ -225,6 +275,9 @@ public class NewsRepository {
                        n.content     AS content,
                        n.url         AS url,
                        n.publishedAt AS publishedAt,
+                       n.createdAt   AS createdAt,
+                       n.publishedAtSource     AS publishedAtSource,
+                       n.publishedAtConfidence AS publishedAtConfidence,
                        n.status      AS status,
                        n.riskScore   AS riskScore,
                        n.riskLevel   AS riskLevel,
@@ -298,6 +351,9 @@ public class NewsRepository {
                         r.get("content").asString(null),
                         r.get("url").asString(null),
                         r.get("publishedAt").isNull() ? null : r.get("publishedAt").asZonedDateTime(),
+                        r.get("createdAt").isNull() ? null : r.get("createdAt").asZonedDateTime(),
+                        r.get("publishedAtSource").asString(null),
+                        r.get("publishedAtConfidence").isNull() ? null : r.get("publishedAtConfidence").asDouble(),
                         r.get("status").asString(null),
                         r.get("riskScore").isNull() ? null : r.get("riskScore").asLong(),
                         r.get("riskLevel").asString(null),
@@ -325,5 +381,17 @@ public class NewsRepository {
             boolean deleted,
             boolean sourceDeleted,
             String sourceName
+    ) {}
+
+    /** Proyección mínima para detectar una News ya guardada del usuario por URL. */
+    public record ExistingNewsByUrl(
+            String newsId,
+            String title,
+            String url,
+            String status,
+            long riskScore,
+            String riskLevel,
+            String sourceName,
+            List<String> topicNames
     ) {}
 }

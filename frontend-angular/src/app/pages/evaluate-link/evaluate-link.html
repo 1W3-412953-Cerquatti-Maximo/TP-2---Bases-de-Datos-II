@@ -11,7 +11,8 @@
     <div>
       <h3>Diagnóstico on-demand</h3>
       <p class="muted small">
-        El resultado combina extracción web, reglas de credibilidad y un resumen asistido por IA.
+        "Buscar noticia" recupera una vista previa del contenido. "Evaluar y guardar" calcula el riesgo
+        oficial y guarda la noticia en NexoVeraz.
       </p>
     </div>
     <span class="badge badge-info">URL pública</span>
@@ -23,7 +24,8 @@
       id="evaluate-url"
       type="url"
       name="url"
-      [(ngModel)]="url"
+      [ngModel]="url"
+      (ngModelChange)="onUrlChange($event)"
       placeholder="https://sitio.com/articulo"
       autocomplete="off"
       spellcheck="false"
@@ -33,23 +35,38 @@
 
   <div class="hero-actions">
     <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="loading()">
-      {{ loading() ? 'Evaluando…' : 'Buscar y evaluar' }}
+      {{ loading() ? 'Buscando…' : 'Buscar noticia' }}
     </button>
     <button type="button" class="btn btn-save" (click)="save()" [disabled]="!canSave()">
-      {{ saving() ? 'Guardando…' : 'Guardar noticia' }}
+      {{ saving() ? 'Evaluando…' : 'Evaluar y guardar' }}
     </button>
   </div>
+
+  @if (alreadySavedHint()) {
+    <p class="tiny muted save-hint">
+      Esta noticia ya fue guardada. Pegá una nueva URL para evaluar otra.
+    </p>
+  }
 
   @if (saveError()) {
     <div class="error save-feedback">{{ saveError() }}</div>
   }
 
   @if (saveResult(); as saved) {
-    <div class="save-success">
+    <div class="save-success" [class.save-existing]="saved.alreadyExists">
       <div class="save-success-head">
-        <span class="badge badge-low">Noticia guardada</span>
+        @if (saved.alreadyExists) {
+          <span class="badge badge-info">Noticia ya guardada</span>
+        } @else {
+          <span class="badge badge-low">Noticia guardada</span>
+        }
         <span [class]="riskBadgeClass(saved.riskLevel)">{{ saved.riskLevel }} ({{ saved.riskScore }})</span>
       </div>
+      @if (saved.alreadyExists) {
+        <p class="tiny muted">{{ saved.message ?? 'Esta noticia ya fue guardada anteriormente.' }}</p>
+      } @else {
+        <p class="tiny muted">riskScore oficial calculado por el sistema sobre el grafo.</p>
+      }
       <p class="save-title">{{ saved.title }}</p>
       <p class="muted small">
         Fuente: {{ saved.sourceName }} · Estado: {{ saved.status }}
@@ -61,6 +78,16 @@
             <span class="chip">{{ topic }}</span>
           }
         </div>
+      }
+
+      @if (saved.aiEnrichmentStatus && !saved.alreadyExists) {
+        <p class="muted small">
+          Enriquecimiento IA: <strong>{{ saved.aiEnrichmentStatus }}</strong>
+          @if (saved.aiEnrichmentStatus === 'COMPLETED' || saved.aiEnrichmentStatus === 'COMPLETED_WITH_WARNINGS') {
+            · Temas {{ saved.topicsCount }} · Claims {{ saved.claimsCount }}
+            · Evidencias {{ saved.evidencesCount }} · Fact Checks {{ saved.factChecksCount }}
+          }
+        </p>
       }
 
       @if (saveHasWarnings()) {
@@ -86,173 +113,45 @@
 }
 
 @if (loading()) {
-  <div class="loading">Recuperando el artículo y calculando el diagnóstico…</div>
+  <div class="loading">Recuperando el artículo…</div>
 }
 
 @if (result(); as result) {
-  <section class="card diagnosis-card">
-    <div class="diagnosis-head">
-      <div>
-        <div class="meta-row">
-          <span class="mono tiny muted">{{ result.resolvedUrl }}</span>
-          <span [class]="fetchStatusClass(result.fetchStatus)">{{ result.fetchStatus }}</span>
-        </div>
-        <h2>{{ result.title }}</h2>
-        <p class="muted small">{{ diagnosis()?.basis }}</p>
+  <section class="card preview-card">
+    <div class="preview-head">
+      <h3>Vista previa de la noticia</h3>
+      <p class="muted small">
+        Contenido recuperado desde la URL. Para calcular el riesgo y guardar la noticia,
+        usá <strong>Evaluar y guardar</strong>.
+      </p>
+    </div>
+
+    <div class="preview-meta">
+      <div class="kv-row">
+        <span class="kv-label">URL consultada</span>
+        <span class="mono small">{{ result.resolvedUrl }}</span>
       </div>
-      @if (diagnosis(); as diagnosis) {
-        <span [class]="riskBadgeClass(diagnosis.riskLevel)">{{ diagnosis.riskLevel }}</span>
+      @if (result.title) {
+        <div class="kv-row">
+          <span class="kv-label">Título</span>
+          <span>{{ result.title }}</span>
+        </div>
+      }
+      @if (hostFromUrl(result.resolvedUrl); as host) {
+        <div class="kv-row">
+          <span class="kv-label">Fuente</span>
+          <span>{{ host }}</span>
+        </div>
       }
     </div>
 
-    @if (diagnosis(); as diagnosis) {
-      <div class="summary-grid">
-        <div class="analysis-summary" [attr.data-level]="diagnosis.riskLevel">
-          <div class="summary-top">
-            <div class="summary-score">
-              <span class="summary-score-value mono">{{ diagnosis.riskScore }}</span>
-              <span class="summary-score-max muted">/ 100</span>
-            </div>
-            <span [class]="riskBadgeClass(diagnosis.riskLevel)">{{ diagnosis.riskLevel }}</span>
-          </div>
-          <div [class]="scoreBarClass(diagnosis.riskLevel)">
-            <span [style.width.%]="diagnosis.riskScore"></span>
-          </div>
-          <p class="summary-text">{{ diagnosis.summary }}</p>
-        </div>
+    <div class="preview-body">
+      <h4>Vista previa del contenido</h4>
+      <p>{{ result.contentPreview }}</p>
+    </div>
 
-        <div class="card-tight extraction-card">
-          <h4>Vista previa del contenido</h4>
-          <p>{{ result.contentPreview }}</p>
-          <div class="extraction-links">
-            <a [href]="result.url" target="_blank" rel="noopener">Abrir URL original</a>
-            @if (result.resolvedUrl !== result.url) {
-              <a [href]="result.resolvedUrl" target="_blank" rel="noopener">Abrir URL resuelta</a>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="section-block">
-        <h3>Señales del diagnóstico ({{ diagnosis.signals.length }})</h3>
-        @if (diagnosis.signals.length === 0) {
-          <p class="muted small">No se activaron señales relevantes sobre el texto o la metadata visible del enlace.</p>
-        } @else {
-          <ul class="signals">
-            @for (signal of diagnosis.signals; track signal.code) {
-              <li class="signal">
-                <div class="signal-points">+{{ signal.points }}</div>
-                <div class="signal-body">
-                  <div class="mono signal-code">{{ signal.code }}</div>
-                  <div class="muted small">{{ signal.description }}</div>
-                </div>
-              </li>
-            }
-          </ul>
-        }
-      </div>
-    }
-  </section>
-
-  <section class="grid grid-2 detail-grid">
-    <section class="card ai-section">
-      <div class="section-head">
-        <div>
-          <h3>Resumen asistido por IA</h3>
-          <p class="muted small">Salida complementaria y opcional. No reemplaza el diagnóstico principal.</p>
-        </div>
-        @if (aiResult(); as ai) {
-          <span class="badge" [class.badge-info]="ai.enabled && ai.ok">
-            {{ ai.enabled ? (ai.provider === 'anthropic' ? 'Anthropic' : 'IA') : 'IA desactivada' }}
-          </span>
-        }
-      </div>
-
-      @if (aiResult(); as ai) {
-        @if (!ai.enabled || !ai.ok) {
-          <p class="muted small">{{ ai.message }}</p>
-        } @else {
-          <p>{{ ai.summary }}</p>
-
-          @if (ai.riskAnalysis) {
-            <div class="subsection">
-              <h4>Análisis de riesgo IA</h4>
-              <p class="muted small">
-                <span [class]="riskBadgeClass(ai.aiRiskLevel ?? null)">{{ ai.aiRiskLevel }}</span>
-                · score IA {{ ai.aiRiskScore }}/100
-              </p>
-              <p>{{ ai.riskAnalysis }}</p>
-            </div>
-          }
-
-          @if (ai.warningSignals.length > 0) {
-            <div class="subsection">
-              <h4>Señales de alerta</h4>
-              <ul class="bullet-list warnings-list">
-                @for (signal of ai.warningSignals; track signal) {
-                  <li>{{ signal }}</li>
-                }
-              </ul>
-            </div>
-          }
-
-          @if (ai.recommendations.length > 0) {
-            <div class="subsection">
-              <h4>Recomendaciones</h4>
-              <ul class="bullet-list">
-                @for (rec of ai.recommendations; track rec) {
-                  <li>{{ rec }}</li>
-                }
-              </ul>
-            </div>
-          }
-
-          @if (ai.limitations.length > 0) {
-            <div class="subsection">
-              <h4>Limitaciones</h4>
-              <ul class="bullet-list">
-                @for (lim of ai.limitations; track lim) {
-                  <li>{{ lim }}</li>
-                }
-              </ul>
-            </div>
-          }
-        }
-
-        <div class="ai-actions">
-          <button type="button" class="btn btn-ghost" (click)="generateSummary()" [disabled]="aiLoading()">
-            {{ aiLoading() ? 'Generando…' : 'Regenerar resumen IA' }}
-          </button>
-        </div>
-      } @else {
-
-        @if (aiLoading()) {
-          <div class="loading">Generando resumen con IA…</div>
-        }
-        @if (aiError()) {
-          <div class="error">{{ aiError() }}</div>
-        }
-
-        <button type="button" class="btn btn-ghost" (click)="generateSummary()" [disabled]="!canGenerateSummary()">
-          {{ aiLoading() ? 'Generando…' : 'Generar resumen IA' }}
-        </button>
-      }
-    </section>
-
-    <section class="card warnings-card">
-      <h3>Observaciones de la extracción</h3>
-      @if (result.warnings.length === 0) {
-        <p class="muted small">La extracción recuperó una estructura suficiente para esta evaluación preliminar.</p>
-      } @else {
-        <ul class="bullet-list warnings-list">
-          @for (warning of result.warnings; track warning) {
-            <li>{{ warning }}</li>
-          }
-        </ul>
-      }
-      <p class="tiny muted note-line">
-        Este resultado describe credibilidad preliminar a partir del texto visible y metadata pública del enlace.
-      </p>
-    </section>
+    <div class="preview-actions">
+      <a class="btn btn-ghost" [href]="result.url" target="_blank" rel="noopener">Abrir URL original</a>
+    </div>
   </section>
 }

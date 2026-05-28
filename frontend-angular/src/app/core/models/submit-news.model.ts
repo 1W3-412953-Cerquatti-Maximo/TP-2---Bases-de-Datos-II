@@ -28,6 +28,16 @@ export interface SubmitNewsUrlResponse {
   riskLevel: RiskLevel;
   topicNames: string[];
   extraction: UrlExtractionResult;
+  // Subfase B: resultado del pipeline de procesamiento (enriquecimiento IA).
+  aiEnrichmentStatus?: string;
+  topicsCount?: number;
+  claimsCount?: number;
+  evidencesCount?: number;
+  factChecksCount?: number;
+  warnings?: string[];
+  // Dedup: backend respondió con una News ya existente; no se ejecutó pipeline.
+  alreadyExists?: boolean;
+  message?: string;
 }
 
 export interface DeleteNewsResponse {

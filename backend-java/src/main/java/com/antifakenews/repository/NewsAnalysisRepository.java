@@ -87,13 +87,19 @@ public class NewsAnalysisRepository {
     }
 
     /**
-     * Persiste el riskScore y riskLevel calculados en el nodo :News.
-     * El análisis es determinístico, así que re-ejecutar produce el mismo valor.
+     * Persiste el riskScore/riskLevel OFICIAL (única fuente de verdad) en :News,
+     * con su procedencia. El análisis es determinístico: re-ejecutar produce el
+     * mismo valor si el grafo no cambió.
      */
     public void persistRisk(String id, int score, String level) {
         final String cypher = """
                 MATCH (n:News {id: $id})
-                SET n.riskScore = $score, n.riskLevel = $level
+                SET n.riskScore = $score,
+                    n.riskLevel = $level,
+                    n.status = 'ANALYZED',
+                    n.riskCalculatedAt = datetime(),
+                    n.riskCalculationSource = 'GRAPH_RULES',
+                    n.riskCalculationVersion = 'v1'
                 """;
         try (Session session = driver.session(sessionConfig)) {
             session.executeWrite(tx -> {

@@ -19,6 +19,7 @@ export interface EvaluateLinkResponse {
   resolvedUrl: string;
   title: string;
   contentPreview: string;
+  content: string;
   fetchStatus: string;
   credibilityDiagnosis: CredibilityDiagnosis;
   warnings: string[];

@@ -36,4 +36,22 @@ public class TopicRepository {
             )));
         }
     }
+
+    /**
+     * Catálogo global de temas existentes (todos los :Topic de la base).
+     * Se usa para limitar la clasificación temática de la IA: solo puede usar
+     * estos nombres, no inventar temas nuevos.
+     */
+    public List<String> findAllNames() {
+        final String cypher = """
+                MATCH (t:Topic)
+                WHERE t.name IS NOT NULL
+                RETURN DISTINCT t.name AS name
+                ORDER BY name ASC
+                """;
+        try (Session session = driver.session(sessionConfig)) {
+            return session.executeRead(tx ->
+                    tx.run(cypher).list(r -> r.get("name").asString(null)));
+        }
+    }
 }

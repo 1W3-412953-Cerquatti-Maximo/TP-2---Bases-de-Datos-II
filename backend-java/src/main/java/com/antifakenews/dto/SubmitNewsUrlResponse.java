@@ -11,5 +11,16 @@ public record SubmitNewsUrlResponse(
         long riskScore,
         String riskLevel,
         List<String> topicNames,
-        UrlExtractionDto extraction
+        UrlExtractionDto extraction,
+        // Subfase B: resultado del pipeline (procesamiento + enriquecimiento IA).
+        String aiEnrichmentStatus,
+        int topicsCount,
+        int claimsCount,
+        int evidencesCount,
+        int factChecksCount,
+        List<String> warnings,
+        // Dedup por URL: cuando true, no se crea una nueva News y se devuelven
+        // los datos de la existente para que el frontend ofrezca "Ver noticia".
+        boolean alreadyExists,
+        String message
 ) {}
