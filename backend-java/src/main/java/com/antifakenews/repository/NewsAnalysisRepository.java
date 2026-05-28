@@ -46,6 +46,15 @@ public class NewsAnalysisRepository {
                   RETURN count(c) AS claimsWithoutEvidence
                 }
                 CALL (n) {
+                  OPTIONAL MATCH (n)-[:CONTAINS]->(c:Claim)
+                  WHERE toUpper(coalesce(c.riskLevel, '')) = 'HIGH'
+                  RETURN count(c) AS highRiskClaims
+                }
+                CALL (n) {
+                  OPTIONAL MATCH (n)-[:CONTAINS]->(c:Claim)-[:HAS_EVIDENCE_GAP]->(:Evidence)
+                  RETURN count(DISTINCT c) AS missingOrWeakEvidenceClaims
+                }
+                CALL (n) {
                   OPTIONAL MATCH (p:Post)-[s:SPREADS]->(n)
                   RETURN count(p) AS postCount, max(s.reach) AS maxReach
                 }
@@ -60,7 +69,8 @@ public class NewsAnalysisRepository {
                        n.title AS title,
                        src.credibilityScore AS sourceCredibility,
                        falseChecks, misleadingChecks, refutedClaims,
-                       claimsWithoutEvidence, postCount, maxReach, connectedPairs
+                       claimsWithoutEvidence, highRiskClaims, missingOrWeakEvidenceClaims,
+                       postCount, maxReach, connectedPairs
                 """;
 
         try (Session session = driver.session(sessionConfig)) {
@@ -78,6 +88,8 @@ public class NewsAnalysisRepository {
                         r.get("misleadingChecks").asLong(0L),
                         r.get("refutedClaims").asLong(0L),
                         r.get("claimsWithoutEvidence").asLong(0L),
+                        r.get("highRiskClaims").asLong(0L),
+                        r.get("missingOrWeakEvidenceClaims").asLong(0L),
                         r.get("postCount").asLong(0L),
                         r.get("maxReach").isNull() ? null : r.get("maxReach").asLong(),
                         r.get("connectedPairs").asLong(0L)
@@ -117,6 +129,8 @@ public class NewsAnalysisRepository {
             long misleadingChecks,
             long refutedClaims,
             long claimsWithoutEvidence,
+            long highRiskClaims,
+            long missingOrWeakEvidenceClaims,
             long postCount,
             Long maxReach,
             long connectedPairs

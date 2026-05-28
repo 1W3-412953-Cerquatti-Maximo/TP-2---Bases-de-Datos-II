@@ -311,6 +311,28 @@ public class AiNewsEnrichmentService {
         }
         sb.append("\n");
 
+        // Señales de riesgo TEXTUAL: pedidas explícitamente para no subvaluar noticias
+        // cuyo riesgo está en el lenguaje (sin que la IA tenga que afirmar "es falso").
+        // No mover verdicts a FALSE/TRUE; sí etiquetar claims y kinds de evidencia
+        // con el grado correcto para que el scoring oficial (grafo) pueda recogerlo.
+        sb.append("Señales de riesgo TEXTUAL — marcalas activamente cuando aparezcan, ")
+                .append("usando los campos del esquema (no inventes verdad absoluta, esto sigue siendo análisis del texto):\n")
+                .append("- Afirmación médica/causal absoluta sin fuente verificable → claim riskLevel=HIGH ")
+                .append("y evidencia kind=MISSING_EVIDENCE.\n")
+                .append("- Causalidad fuerte (\"X causa Y\") sin sustento citado → factCheck verdict=MISLEADING ")
+                .append("(esto NO es decir que es falso; es señalar engaño potencial por simplificación).\n")
+                .append("- Lenguaje sensacionalista, conspirativo o alarmista (\"ocultan\", \"silencian\", \"milagroso\") ")
+                .append("→ claim riskLevel=HIGH.\n")
+                .append("- Cita anónima o vaga (\"expertos\", \"un estudio\", \"fuentes\") sin nombre ni link ")
+                .append("→ evidencia kind=WEAK_EVIDENCE.\n")
+                .append("- Afirmación sin posibilidad razonable de verificación con lo que aporta el texto ")
+                .append("→ factCheck verdict=UNVERIFIED y evidencia kind=MISSING_EVIDENCE.\n")
+                .append("- Cuando el texto contradice el consenso establecido o cita una evidencia presente en el propio artículo ")
+                .append("que refuta el reclamo → evidencia kind=REFUTING_EVIDENCE (relación REFUTED_BY).\n")
+                .append("Regla: la prudencia con verdicts FALSE/TRUE NO debe convertirse en omitir el riesgo del texto. ")
+                .append("Si el texto está lleno de afirmaciones absolutas sin sustento, devolvé claims con riskLevel=HIGH ")
+                .append("y evidencias MISSING/WEAK; eso ES análisis del texto, no veredicto externo.\n\n");
+
         // Clasificación temática restringida al catálogo existente (no inventar temas).
         String allowedList = (allowedTopics == null || allowedTopics.isEmpty())
                 ? "(no hay temas disponibles)"
